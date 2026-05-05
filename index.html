@@ -1,0 +1,1840 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f1117">
+<meta name="apple-mobile-web-app-title" content="Arqueo Bóveda">
+<title>Arqueo de Bóveda — EPQ</title>
+<meta name="description" content="Sistema de control de arqueo de bóveda para EPQ">
+<link id="pwa-manifest" rel="manifest">
+<script>
+// ── PWA: Registrar Service Worker + Manifest inline ──
+(function(){
+  // Manifest inline como blob
+  const manifest = {"name": "Arqueo de Bóveda — EPQ", "short_name": "Arqueo Bóveda", "description": "Sistema de control de arqueo de bóveda para EPQ", "start_url": ".", "display": "standalone", "background_color": "#0f1117", "theme_color": "#14b8a6", "orientation": "portrait-primary", "icons": [{"src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='24' fill='%230f1117'/%3E%3Crect x='16' y='72' width='160' height='100' rx='12' fill='%2314b8a6'/%3E%3Crect x='40' y='88' width='48' height='16' rx='4' fill='white'/%3E%3Crect x='104' y='88' width='48' height='16' rx='4' fill='white'/%3E%3Crect x='60' y='40' width='72' height='44' rx='8' fill='%230d9488'/%3E%3Crect x='76' y='52' width='40' height='6' rx='3' fill='white'/%3E%3Crect x='76' y='64' width='28' height='6' rx='3' fill='white'/%3E%3C/svg%3E", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable"}, {"src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='64' fill='%230f1117'/%3E%3Crect x='40' y='190' width='432' height='270' rx='32' fill='%2314b8a6'/%3E%3Crect x='100' y='230' width='130' height='44' rx='10' fill='white'/%3E%3Crect x='280' y='230' width='130' height='44' rx='10' fill='white'/%3E%3Crect x='156' y='100' width='200' height='120' rx='20' fill='%230d9488'/%3E%3Crect x='196' y='128' width='120' height='18' rx='8' fill='white'/%3E%3Crect x='196' y='158' width='80' height='18' rx='8' fill='white'/%3E%3C/svg%3E", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable"}], "categories": ["finance", "productivity"], "lang": "es", "dir": "ltr"};
+  const mBlob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+  const mUrl = URL.createObjectURL(mBlob);
+  document.getElementById('pwa-manifest').href = mUrl;
+
+  // Service Worker inline como blob
+  if('serviceWorker' in navigator){
+    const swCode = `
+const CACHE='arqueo-boveda-v1';
+const ASSETS=['/'];
+self.addEventListener('install',e=>{
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));
+  self.skipWaiting();
+});
+self.addEventListener('activate',e=>{
+  e.waitUntil(caches.keys().then(keys=>Promise.all(
+    keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))
+  )));
+  self.clients.claim();
+});
+self.addEventListener('fetch',e=>{
+  e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>
+    new Response('<h2>Sin conexión</h2>',{headers:{'Content-Type':'text/html'}})
+  )));
+});
+`;
+    const swBlob = new Blob([swCode], {type:'application/javascript'});
+    const swUrl = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swUrl, {scope:'./'})
+      .then(()=>console.log('SW registrado OK'))
+      .catch(e=>console.log('SW error:',e));
+  }
+})();
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1117;--bg2:#171b24;--bg3:#1e2330;--border:#2a3044;
+  --text:#e2e8f0;--muted:#8892a4;--accent:#14b8a6;--accent2:#0d9488;
+  --green:#22c55e;--red:#ef4444;--yellow:#f59e0b;--blue:#60a5fa;
+  --r:8px;--f:'Segoe UI',system-ui,sans-serif
+}
+body{background:var(--bg);color:var(--text);font-family:var(--f);font-size:14px;min-height:100vh;
+  -webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;touch-action:manipulation}
+
+.hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+@media(max-width:480px){.hdr{padding:8px 10px;gap:6px}}
+.logo{width:36px;height:36px;background:var(--accent);border-radius:8px;display:grid;place-items:center;flex-shrink:0}
+.logo svg{width:20px;height:20px;fill:#fff}
+.hdr-meta{display:flex;align-items:center;gap:10px;margin-left:auto;flex-wrap:wrap}
+input[type=date],select{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:var(--r);font-size:13px;outline:none}
+input[type=date]:focus,select:focus{border-color:var(--accent)}
+
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);padding:0 20px;overflow-x:auto;gap:0}
+.tab{padding:14px 16px;cursor:pointer;border-bottom:2px solid transparent;font-size:13px;font-weight:500;
+  color:var(--muted);white-space:nowrap;transition:.15s;user-select:none;min-height:48px;
+  display:flex;align-items:center;-webkit-tap-highlight-color:transparent}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab:hover:not(.active){color:var(--text)}
+
+.pane{display:none;padding:16px;max-width:1100px;margin:0 auto}
+@media(max-width:600px){.pane{padding:8px 6px}}
+.pane.on{display:block}
+
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px}
+@media(max-width:600px){.card{padding:10px;margin-bottom:8px}}
+.ctitle{font-size:15px;font-weight:600;color:var(--accent);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px}
+@media(max-width:480px){.stats{grid-template-columns:1fr 1fr}}
+.stat{background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.sl{font-size:11px;color:var(--muted);font-weight:500;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.sv{font-size:20px;font-weight:700}
+.sv.g{color:var(--green)}.sv.r{color:var(--red)}.sv.a{color:var(--accent)}.sv.y{color:var(--yellow)}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--bg3);color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
+th.r,td.r{text-align:right}
+td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr.ft td{background:var(--bg3);font-weight:700;border-top:1px solid var(--border)}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media(max-width:600px){
+  table{min-width:520px}
+  td,th{padding:6px 8px;font-size:12px}
+  td input[type=number]{min-width:70px;font-size:16px}
+}
+
+input[type=number]{width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  padding:6px 8px;border-radius:6px;font-size:16px;text-align:right;outline:none;
+  -moz-appearance:textfield;min-height:40px;cursor:pointer}
+input[type=number]:focus{border-color:var(--accent);background:rgba(20,184,166,.08)}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+input[type=date],select{font-size:16px;min-height:38px}
+
+.auto{color:var(--accent);font-weight:600;text-align:right;font-size:13px}
+.ok{color:var(--green);font-weight:700;font-size:12px}
+.err{color:var(--red);font-weight:700;font-size:12px}
+.warn{color:var(--yellow);font-weight:700;font-size:12px}
+.red-val{color:var(--red);font-weight:700}
+.green-val{color:var(--green);font-weight:700}
+
+.sep{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:5px 0;margin:18px 0 8px;border-bottom:1px solid var(--border)}
+
+.val-box{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--r);border:1px solid;margin-top:12px}
+.val-box.ok-box{background:rgba(34,197,94,.08);border-color:rgba(34,197,94,.3)}
+.val-box.err-box{background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.3)}
+.val-icon{font-size:20px}
+.val-text{font-size:13px;line-height:1.5}
+
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:var(--r);font-size:14px;
+  font-weight:600;cursor:pointer;border:none;transition:.15s;min-height:44px;touch-action:manipulation}
+.btn-p{background:var(--accent);color:#fff}.btn-p:hover{background:var(--accent2)}
+.btn-g{background:transparent;color:var(--muted);border:1px solid var(--border)}.btn-g:hover{color:var(--text);border-color:var(--accent)}
+.btn-d{background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3)}
+.acts{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+
+.tag{display:inline-block;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:600}
+.ta{background:#1e3a5f;color:#93c5fd}.tp{background:#1c3529;color:#86efac}
+
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:680px){.g2{grid-template-columns:1fr}}
+
+.nota{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.6}
+.nota span{margin-right:12px}
+
+@media print{
+  .no-print{display:none!important}
+  body{background:#fff;color:#000}
+  .hdr,.tabs{background:#f1f5f9;border-color:#e2e8f0}
+  .card{border-color:#e2e8f0;background:#fff;break-inside:avoid}
+  .pane{display:block!important;padding:8px}
+  th{background:#f1f5f9;color:#374151}
+  input{border:none!important;background:transparent!important;color:#000!important}
+  .stat{background:#f8fafc;border-color:#e2e8f0}
+  .sv{color:#000}.sv.g{color:#16a34a}.sv.r{color:#dc2626}.sv.a{color:#0f766e}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<!-- PWA Install Banner -->
+<div id="pwa-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#0d9488;color:white;padding:10px 16px;font-size:13px;font-weight:600;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.3)">
+  <span style="flex:1">📲 Instala la app para acceso rápido</span>
+  <button onclick="installPWA()" style="background:white;color:#0d9488;border:none;border-radius:6px;padding:6px 14px;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation">Instalar</button>
+  <button onclick="document.getElementById('pwa-banner').style.display='none'" style="background:rgba(255,255,255,.2);border:none;border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer;color:white">✕</button>
+</div>
+<script>
+let _deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  _deferredPrompt=e;
+  const b=document.getElementById('pwa-banner');
+  b.style.display='flex';
+  // Adjust header top margin
+  document.querySelector('.hdr').style.marginTop='52px';
+});
+window.addEventListener('appinstalled',()=>{
+  document.getElementById('pwa-banner').style.display='none';
+  document.querySelector('.hdr').style.marginTop='';
+});
+function installPWA(){
+  if(!_deferredPrompt)return;
+  _deferredPrompt.prompt();
+  _deferredPrompt.userChoice.then(r=>{
+    if(r.outcome==='accepted'){
+      document.getElementById('pwa-banner').style.display='none';
+      document.querySelector('.hdr').style.marginTop='';
+    }
+    _deferredPrompt=null;
+  });
+}
+</script>
+
+<div class="hdr no-print">
+  <div class="logo">
+    <svg viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2zm-9 7H7v-2h4v2zm6 0h-4v-2h4v2z"/></svg>
+  </div>
+  <div>
+    <div style="font-size:16px;font-weight:700">Arqueo de Bóveda</div>
+    <div style="font-size:11px;color:var(--muted)">Sistema de Control — Cambio de Turno</div>
+  </div>
+  <div class="hdr-meta">
+    <span id="online-ind" title="Estado conexión" style="font-size:16px;cursor:default">🟢</span>
+    <button onclick="resetAll()" style="padding:5px 14px;border-radius:var(--r);border:1px solid var(--red);background:rgba(239,68,68,.12);color:#fca5a5;font-size:12px;font-weight:700;cursor:pointer;transition:.15s" title="Encerar todos los campos" onmouseenter="this.style.background='rgba(239,68,68,.25)'" onmouseleave="this.style.background='rgba(239,68,68,.12)'">⬜ Encerar todo</button>
+    <input type="date" id="fecha">
+    <select id="turno" onchange="updTurno()">
+      <option value="1">Turno 1 — Mañana</option>
+      <option value="2">Turno 2 — Tarde</option>
+      <option value="3">Turno 3 — Noche</option>
+    </select>
+    <div id="tbadge" style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;background:#1e3a5f;color:#93c5fd;border:1px solid #3b82f6">Turno 1</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs no-print">
+  <div class="tab active" onclick="showTab(0)">💰 Dinero en Bóveda</div>
+  <div class="tab" onclick="showTab(1)">🎫 Boletos en Bóveda</div>
+  <div class="tab" onclick="showTab(2)">🚌 Planillas Hoy</div>
+  <div class="tab" onclick="showTab(3)">📅 Planillas Mañana</div>
+  <div class="tab" onclick="showTab(4)">📋 Reporte</div>
+  <div class="tab" onclick="showTab(5)">📊 Informe EPQ</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 0 — DINERO EN BÓVEDA
+═══════════════════════════════════════════════ -->
+<div class="pane on" id="pane-0">
+  <div class="stats" id="stats-din"></div>
+  <div class="card">
+    <div class="ctitle">Control de Dinero Físico</div>
+
+    <div class="sep">Monedas</div>
+    <div class="tw">
+      <table>
+        <thead>
+          <tr>
+            <th>Denominación</th>
+            <th class="r">Fondo ($)</th>
+            <th class="r">Entregado ($)</th>
+            <th class="r">Saldo Caja ($)</th>
+            <th class="r">Total ($)</th>
+          </tr>
+        </thead>
+        <tbody id="tb-mon"></tbody>
+        <tfoot>
+          <tr class="ft">
+            <td>TOTAL MONEDAS</td>
+            <td class="r" id="mf-t">0.00</td>
+            <td class="r auto" id="me-t">0.00</td>
+            <td class="r" id="ms-t">0.00</td>
+            <td class="r" id="mt-t">0.00</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="sep">Billetes</div>
+    <div class="tw">
+      <table>
+        <thead>
+          <tr>
+            <th>Denominación</th>
+            <th class="r">Fondo ($)</th>
+            <th class="r">Entregado ($)</th>
+            <th class="r">Saldo Caja ($)</th>
+            <th class="r">Total ($)</th>
+          </tr>
+        </thead>
+        <tbody id="tb-bil"></tbody>
+        <tfoot>
+          <tr class="ft">
+            <td>TOTAL BILLETES</td>
+            <td class="r" id="bf-t">0.00</td>
+            <td class="r auto" id="be-t">0.00</td>
+            <td class="r" id="bs-t">0.00</td>
+            <td class="r" id="bt-t">0.00</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="sep">Otros</div>
+    <div class="tw">
+      <table>
+        <thead><tr><th>Descripción</th><th class="r">Fondo ($)</th><th class="r">Entregado ($)</th><th class="r">Saldo Caja ($)</th><th class="r">Total ($)</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><input type="text" id="otro-desc" placeholder="Descripción..." style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:6px;width:100%;outline:none;font-size:13px"></td>
+            <td><input type="number" id="of" min="0" value="0" step="0.01" onchange="calcDin()"></td>
+            <td><input type="number" id="oe" min="0" value="0" step="0.01" onchange="calcDin()"></td>
+            <td><input type="number" id="os" min="0" value="0" step="0.01" onchange="calcDin()"></td>
+            <td class="auto" id="ot">0.00</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr class="ft">
+            <td>GRAN TOTAL BÓVEDA</td>
+            <td class="r" id="gf">0.00</td>
+            <td class="r auto" id="ge">0.00</td>
+            <td class="r" id="gs">0.00</td>
+            <td class="r" id="gt">0.00</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- VALIDACIÓN DINERO -->
+    <div id="val-din" style="margin-top:14px"></div>
+
+    <div class="nota" style="margin-top:14px">
+      <span style="color:var(--accent)">ℹ</span>
+      <strong>Entregado</strong> se calcula automáticamente desde la suma del Efectivo Inicial de las 35 paradas en Planillas Hoy. &nbsp;
+      <strong>Saldo Caja</strong> se ingresa manualmente tras el conteo físico al cerrar turno.
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ctitle">Observaciones</div>
+    <textarea id="obs" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:10px;border-radius:var(--r);font-size:13px;resize:vertical;min-height:70px;outline:none;font-family:var(--f)" placeholder="Novedades del turno, faltantes, observaciones..."></textarea>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 1 — BOLETOS EN BÓVEDA
+═══════════════════════════════════════════════ -->
+<div class="pane" id="pane-1">
+  <div class="stats" id="stats-bol"></div>
+  <div class="card">
+    <div class="ctitle">Control de Boletos — Verificación Bóveda</div>
+    <div class="tw">
+      <table>
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th class="r">Stock Bóveda</th>
+            <th class="r">Entregado Hoy</th>
+            <th class="r">Planilla Mañana</th>
+            <th class="r" style="color:var(--red)">Quedan en Bóveda ▼</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="tb-bol"></tbody>
+        <tfoot>
+          <tr class="ft">
+            <td>TOTALES</td>
+            <td class="r" id="bol-sk">0</td>
+            <td class="r auto" id="bol-eh">0</td>
+            <td class="r auto" id="bol-pm">0</td>
+            <td class="r" id="bol-qd">0</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="nota" style="margin-top:12px">
+      <span style="color:var(--red)">▼ Quedan en Bóveda</span> = Stock Bóveda − Planilla Mañana → cantidad que debe haber físicamente en bodega al verificar. &nbsp;
+      <span style="color:var(--accent)">Entregado Hoy</span> se calcula automáticamente desde Planillas Hoy.
+      <br style="margin:4px 0">
+      <span class="tag ta">ALM</span> alimentadoras &nbsp; <span class="tag tp">PAR</span> paradas troncales
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 2 — PLANILLAS HOY
+═══════════════════════════════════════════════ -->
+<div class="pane" id="pane-2">
+  <div class="stats" id="stats-hoy"></div>
+  <div class="card">
+    <div class="ctitle">Planillas Hoy — Turno Actual</div>
+    <div class="sep">35 Paradas (boletos + efectivo inicial)</div>
+    <div class="tw">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Parada</th>
+            <th class="r">B $0.35</th><th class="r">B $0.17</th><th class="r">B $0.10</th>
+            <th class="r">Ef. Inicial ($)</th>
+            <th class="r">Subtotal ($)</th>
+          </tr>
+        </thead>
+        <tbody id="tb-hpar"></tbody>
+        <tfoot>
+          <tr class="ft">
+            <td colspan="2">SUBTOTAL 35 PARADAS</td>
+            <td class="r" id="hp35-t">0</td><td class="r" id="hp17-t">0</td><td class="r" id="hp10-t">0</td>
+            <td class="r auto" id="hpef-t">0.00</td>
+            <td class="r" id="hpsub-t">0.00</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="sep" style="margin-top:20px">4 Alimentadoras (solo boletos)</div>
+    <div class="tw">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Alimentadora</th>
+            <th class="r">B $0.35</th><th class="r">B $0.17</th><th class="r">B $0.10</th>
+            <th class="r">Subtotal ($)</th>
+          </tr>
+        </thead>
+        <tbody id="tb-halm"></tbody>
+        <tfoot>
+          <tr class="ft">
+            <td colspan="2">SUBTOTAL 4 ALIMENTADORAS</td>
+            <td class="r" id="ha35-t">0</td><td class="r" id="ha17-t">0</td><td class="r" id="ha10-t">0</td>
+            <td class="r" id="hasub-t">0.00</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+      <div><div class="sl">Total B $0.35 (39)</div><div class="sv a" id="htot35">0</div></div>
+      <div><div class="sl">Total B $0.17 (39)</div><div class="sv a" id="htot17">0</div></div>
+      <div><div class="sl">Total B $0.10 (39)</div><div class="sv a" id="htot10">0</div></div>
+      <div><div class="sl">Total Efectivo Inicial (35)</div><div class="sv g" id="htotef">$0.00</div></div>
+      <div><div class="sl">Gran Total Planillas</div><div class="sv g" id="htotsub">$0.00</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 3 — PLANILLAS MAÑANA
+═══════════════════════════════════════════════ -->
+<div class="pane" id="pane-3">
+  <div class="stats" id="stats-man"></div>
+  <div class="card">
+    <div class="ctitle">Planillas Mañana — Próximo Turno (solo boletos)</div>
+    <div class="sep">35 Paradas</div>
+    <div class="tw">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Parada</th><th class="r">B $0.35</th><th class="r">B $0.17</th><th class="r">B $0.10</th><th class="r">Subtotal ($)</th></tr>
+        </thead>
+        <tbody id="tb-mpar"></tbody>
+        <tfoot>
+          <tr class="ft">
+            <td colspan="2">SUBTOTAL 35 PARADAS</td>
+            <td class="r" id="mp35-t">0</td><td class="r" id="mp17-t">0</td><td class="r" id="mp10-t">0</td>
+            <td class="r" id="mpsub-t">0.00</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div class="sep" style="margin-top:20px">4 Alimentadoras</div>
+    <div class="tw">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Alimentadora</th><th class="r">B $0.35</th><th class="r">B $0.17</th><th class="r">B $0.10</th><th class="r">Subtotal ($)</th></tr>
+        </thead>
+        <tbody id="tb-malm"></tbody>
+        <tfoot>
+          <tr class="ft">
+            <td colspan="2">SUBTOTAL 4 ALIMENTADORAS</td>
+            <td class="r" id="ma35-t">0</td><td class="r" id="ma17-t">0</td><td class="r" id="ma10-t">0</td>
+            <td class="r" id="masub-t">0.00</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+      <div><div class="sl">Total B $0.35 (39)</div><div class="sv a" id="mtot35">0</div></div>
+      <div><div class="sl">Total B $0.17 (39)</div><div class="sv a" id="mtot17">0</div></div>
+      <div><div class="sl">Total B $0.10 (39)</div><div class="sv a" id="mtot10">0</div></div>
+      <div><div class="sl">Gran Total Planillas</div><div class="sv g" id="mtotsub">$0.00</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     TAB 4 — REPORTE
+═══════════════════════════════════════════════ -->
+<div class="pane" id="pane-4">
+  <div class="acts no-print">
+    <button class="btn btn-p" onclick="window.print()">🖨️ Imprimir</button>
+    <button class="btn btn-g" onclick="exportCSV()">⬇️ Exportar CSV</button>
+    <button class="btn btn-d" onclick="resetAll()">🗑️ Limpiar todo</button>
+  </div>
+  <div id="rpt"></div>
+</div>
+
+<!-- ═══ TAB 5 — INFORME EPQ C.TROLE ═══ -->
+<div class="pane" id="pane-5">
+  <div class="acts no-print">
+    <button class="btn btn-p" onclick="printTrole()">🖨️ Imprimir Informe</button>
+  </div>
+  <div id="trole-report" style="background:#fff;color:#000;padding:20px;border-radius:var(--r);font-family:Arial,sans-serif;font-size:11px;max-width:900px;margin:0 auto"></div>
+</div>
+
+<script>
+// ═══ DATOS BASE ═══
+const MONEDAS = [
+  {l:'M $1.00',f:0,s:0},{l:'M $0.50',f:0,s:0},
+  {l:'M $0.25',f:1750,s:2150},{l:'M $0.10',f:350,s:2180},
+  {l:'M $0.05',f:175,s:805},{l:'M $0.01',f:35,s:38}
+];
+const BILLETES = [
+  {l:'$100',f:0,s:0},{l:'$50',f:0,s:0},{l:'$20',f:0,s:0},
+  {l:'$10',f:0,s:0},{l:'$5',f:0,s:0},{l:'$1',f:0,s:0}
+];
+const BOLETOS = [
+  {l:'B-ALM $0.35',tag:'ta',tipo:'alm',den:35},
+  {l:'B-ALM $0.17',tag:'ta',tipo:'alm',den:17},
+  {l:'B-ALM $0.10',tag:'ta',tipo:'alm',den:10},
+  {l:'B-PAR $0.35',tag:'tp',tipo:'par',den:35},
+  {l:'B-PAR $0.17',tag:'tp',tipo:'par',den:17},
+  {l:'B-PAR $0.10',tag:'tp',tipo:'par',den:10}
+];
+const BOL_STOCK = [56900,43000,1900,1361570,35596,17028];
+
+const PAR35 = [
+  'Quitumbe 1','Quitumbe 2','Quitumbe 3','Cóndor Ñan','Amaru Ñan',
+  'Morán Valverde 1','Morán Valverde 2','Turubamba','Quimiag','Mayorista',
+  'Solanda','Ajaví','Internacional','Quito Sur','España 1',
+  'España 2','Calzado','El Recreo 1','El Recreo 2','El Recreo 3',
+  'Villa Flora','Villa Flora','Chimbacalle','Chimbacalle','Colina',
+  'Jefferson Pérez','La Recoleta','La Recoleta','Cumandá','Cumandá',
+  'Santo Domingo','Santo Domingo','Plaza Marín','Plaza Chica','Plaza del Teatro'
+];
+const ALM4 = ['El Recreo Alimentadores','Morán Valverde Alimentadores','Quitumbe Alimentadores','Forestal Alimentadores'];
+
+// HOY: paradas [b35,b17,b10,ef]
+const HOY_PAR = [
+  [500,563,97,66],[985,498,91,66],[989,494,99,66],[1008,568,85,66],[1000,818,140,66],
+  [839,500,77,66],[500,200,56,66],[984,700,82,66],[636,467,36,66],[533,500,76,66],
+  [712,445,58,66],[600,499,78,66],[548,175,84,66],[525,432,71,66],[738,539,61,66],
+  [200,200,100,66],[821,965,126,66],[500,500,100,66],[500,499,99,66],[500,498,100,66],
+  [1065,791,71,66],[834,741,154,66],[400,400,82,66],[598,527,56,66],[375,190,26,66],
+  [348,148,23,66],[938,393,93,66],[912,262,111,66],[226,259,46,66],[339,422,44,66],
+  [1000,700,54,66],[600,1420,128,66],[500,497,157,66],[747,500,163,66],[600,800,100,66]
+];
+// HOY: alimentadoras [b35,b17,b10]
+const HOY_ALM = [
+  [14000,9000,800],[3100,2100,500],[9800,6000,800],[3100,2300,300]
+];
+// MAÑANA: paradas [b35,b17,b10]
+const MAN_PAR = [
+  [486,500,66],[613,936,78],[858,400,98],[500,404,117],[965,776,140],
+  [926,500,98],[492,400,54],[1656,894,96],[1583,524,89],[567,516,45],
+  [625,241,119],[622,394,79],[563,414,46],[609,471,145],[855,363,77],
+  [200,200,100],[1131,470,161],[1000,500,89],[858,500,95],[500,340,97],
+  [1140,570,73],[1072,950,141],[653,319,121],[489,465,66],[295,175,23],
+  [349,137,14],[491,287,86],[294,386,51],[581,300,110],[468,240,101],
+  [481,989,87],[4961,1129,159],[950,600,100],[1000,807,100],[937,699,107]
+];
+// MAÑANA: alimentadoras [b35,b17,b10]
+const MAN_ALM = [
+  [9700,6200,500],[2000,1900,300],[6700,3400,500],[3500,2500,300]
+];
+
+// ═══ UTILIDADES ═══
+const $=id=>document.getElementById(id);
+const N=(x,d=2)=>Number(x).toLocaleString('es-EC',{minimumFractionDigits:d,maximumFractionDigits:d});
+const NI=x=>Math.round(Number(x)).toLocaleString('es-EC');
+const v=id=>+$( id).value||0;
+
+function showTab(i){
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',i===j));
+  document.querySelectorAll('.pane').forEach((p,j)=>p.classList.toggle('on',i===j));
+  document.querySelectorAll('.mnav-btn').forEach((b,j)=>b.classList.toggle('active',i===j));
+  if(i===4)buildRpt();
+  if(i===5)buildTrole();
+  // Scroll to top of active pane on mobile
+  window.scrollTo({top:0,behavior:'instant'});
+}
+
+// INIT DATE & TURNO
+(function(){
+  $('fecha').value=new Date().toISOString().split('T')[0];
+})();
+function updTurno(){
+  const t=['Turno 1 — Mañana','Turno 2 — Tarde','Turno 3 — Noche'][$('turno').value-1];
+  $('tbadge').textContent=t;
+}
+
+// ═══ BUILD DINERO ═══
+(function(){
+  const tb=tb=>document.querySelector('#tb-'+tb+' tbody')||document.getElementById('tb-'+tb);
+  // monedas
+  MONEDAS.forEach((m,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${m.l}</td>
+      <td><input type="number" id="mf${i}" min="0" value="${m.f}" step="0.01" onchange="calcDin()"></td>
+      <td class="auto" id="me${i}">0.00</td>
+      <td><input type="number" id="ms${i}" min="0" value="${m.s}" step="0.01" onchange="calcDin()"></td>
+      <td class="auto" id="mt${i}">0.00</td>`;
+    $('tb-mon').appendChild(tr);
+  });
+  // billetes
+  BILLETES.forEach((b,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${b.l}</td>
+      <td><input type="number" id="bf${i}" min="0" value="${b.f}" step="0.01" onchange="calcDin()"></td>
+      <td class="auto" id="be${i}">0.00</td>
+      <td><input type="number" id="bs${i}" min="0" value="${b.s}" step="0.01" onchange="calcDin()"></td>
+      <td class="auto" id="bt${i}">0.00</td>`;
+    $('tb-bil').appendChild(tr);
+  });
+  calcDin();
+})();
+
+function getEfTotal(){
+  // suma efectivo inicial de las 35 paradas
+  let s=0;
+  PAR35.forEach((_,i)=>{
+    const el=$(`hef${i}`);
+    s+=el?+el.value||0:HOY_PAR[i][3];
+  });
+  return s;
+}
+
+function calcDin(){
+  const ef=getEfTotal();
+  // entregado por denominación: distribuido proporcionalmente entre monedas activas
+  // pero se muestra como total automático en la columna ENTREGADO
+  // Lógica: el ENTREGADO total = efectivo inicial. Por denominación el usuario lo ingresa.
+  // Lo mostramos como 0 y en el total mostramos el valor auto de planillas.
+
+  let mfT=0,meT=0,msT=0,mtT=0;
+  MONEDAS.forEach((_,i)=>{
+    const f=v(`mf${i}`), s=v(`ms${i}`);
+    const tot=f+s;
+    $(`me${i}`).textContent='—';
+    $(`mt${i}`).textContent=N(tot);
+    mfT+=f;msT+=s;mtT+=tot;
+  });
+  meT=ef; // total entregado auto = suma efectivo inicial planillas
+
+  $('mf-t').textContent=N(mfT);
+  $('me-t').textContent=N(meT);
+  $('ms-t').textContent=N(msT);
+  $('mt-t').textContent=N(mfT+msT);
+
+  let bfT=0,beT=0,bsT=0,btT=0;
+  BILLETES.forEach((_,i)=>{
+    const f=v(`bf${i}`), s=v(`bs${i}`);
+    $(`be${i}`).textContent='—';
+    $(`bt${i}`).textContent=N(f+s);
+    bfT+=f;bsT+=s;btT+=f+s;
+  });
+  $('bf-t').textContent=N(bfT);
+  $('be-t').textContent='—';
+  $('bs-t').textContent=N(bsT);
+  $('bt-t').textContent=N(btT);
+
+  const of_=v('of'),oe_=v('oe'),os_=v('os');
+  $('ot').textContent=N(of_+os_);
+
+  const gf=mfT+bfT+of_;
+  const ge=meT; // auto desde planillas
+  const gs=msT+bsT+os_;
+  const gtotal=gf+gs;
+  $('gf').textContent=N(gf);
+  $('ge').textContent=N(ge);
+  $('gs').textContent=N(gs);
+  $('gt').textContent=N(gtotal);
+
+  // Validación: ENTREGADO (auto desde planillas) debe ser igual a... 
+  // El FONDO total de monedas debería cubrir el entregado
+  const ok=Math.abs(mfT-ef)<0.01;
+  const diff=mfT-ef;
+  const vb=$('val-din');
+  if(ef===0){
+    vb.innerHTML=`<div class="val-box" style="background:rgba(96,165,250,.08);border-color:rgba(96,165,250,.3)"><span class="val-icon">ℹ️</span><div class="val-text">Ingresa las planillas de Hoy para activar la validación automática.</div></div>`;
+  } else if(ok){
+    vb.innerHTML=`<div class="val-box ok-box"><span class="val-icon">✅</span><div class="val-text"><strong class="ok">CUADRADO</strong> — El Fondo de monedas ($${N(mfT)}) coincide con el Efectivo Inicial entregado en Planillas Hoy ($${N(ef)}).</div></div>`;
+  } else {
+    vb.innerHTML=`<div class="val-box err-box"><span class="val-icon">❌</span><div class="val-text"><strong class="err">DIFERENCIA: $${N(Math.abs(diff))}</strong> — Fondo monedas $${N(mfT)} vs Efectivo Planillas $${N(ef)}. ${diff>0?'Hay excedente en Fondo.':'Falta dinero en Fondo.'}</div></div>`;
+  }
+
+  $('stats-din').innerHTML=`
+    <div class="stat"><div class="sl">Fondo Total</div><div class="sv a">$${N(gf)}</div></div>
+    <div class="stat"><div class="sl">Entregado (Planillas)</div><div class="sv a">$${N(ge)}</div></div>
+    <div class="stat"><div class="sl">Saldo Caja (físico)</div><div class="sv">${N(gs)}</div></div>
+    <div class="stat"><div class="sl">Total Bóveda</div><div class="sv g">$${N(gtotal)}</div></div>
+    <div class="stat"><div class="sl">Validación</div><div class="sv ${ok?'g':'r'}">${ok?'OK':'REVISAR'}</div></div>`;
+}
+
+// ═══ BUILD BOLETOS ═══
+(function(){
+  BOLETOS.forEach((b,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td><span class="tag ${b.tag}">${b.tipo.toUpperCase()}</span> ${b.l}</td>
+      <td><input type="number" id="bsk${i}" min="0" value="${BOL_STOCK[i]}" onchange="calcBol()"></td>
+      <td class="auto" id="beh${i}">0</td>
+      <td class="auto" id="bpm${i}">0</td>
+      <td class="red-val" id="bqd${i}">0</td>
+      <td id="bst${i}">—</td>`;
+    $('tb-bol').appendChild(tr);
+  });
+  calcBol();
+})();
+
+function getHoyTotals(){
+  // PAR35: columnas 0=b35, 1=b17, 2=b10
+  const par=[0,0,0], alm=[0,0,0];
+  PAR35.forEach((_,i)=>{
+    [0,1,2].forEach(c=>{
+      const el=$(`hp${['35','17','10'][c]}${i}`);
+      par[c]+=el?+el.value||0:HOY_PAR[i][c];
+    });
+  });
+  ALM4.forEach((_,i)=>{
+    [0,1,2].forEach(c=>{
+      const el=$(`ha${['35','17','10'][c]}${i}`);
+      alm[c]+=el?+el.value||0:HOY_ALM[i][c];
+    });
+  });
+  return {par,alm};
+}
+function getManTotals(){
+  const par=[0,0,0], alm=[0,0,0];
+  PAR35.forEach((_,i)=>{
+    [0,1,2].forEach(c=>{
+      const el=$(`mp${['35','17','10'][c]}${i}`);
+      par[c]+=el?+el.value||0:MAN_PAR[i][c];
+    });
+  });
+  ALM4.forEach((_,i)=>{
+    [0,1,2].forEach(c=>{
+      const el=$(`ma${['35','17','10'][c]}${i}`);
+      alm[c]+=el?+el.value||0:MAN_ALM[i][c];
+    });
+  });
+  return {par,alm};
+}
+
+function calcBol(){
+  const hoy=getHoyTotals(), man=getManTotals();
+  // mapping: ALM tipos -> alm[], PAR tipos -> par[], col index by den
+  const denIdx={35:0,17:1,10:2};
+  let skT=0,ehT=0,pmT=0,qdT=0;
+  BOLETOS.forEach((b,i)=>{
+    const sk=v(`bsk${i}`);
+    const tipo=b.tipo, di=denIdx[b.den];
+    const eh=tipo==='alm'?hoy.alm[di]:hoy.par[di];
+    const pm=tipo==='alm'?man.alm[di]:man.par[di];
+    const qd=sk-pm;
+    $(`beh${i}`).textContent=NI(eh);
+    $(`bpm${i}`).textContent=NI(pm);
+    $(`bqd${i}`).textContent=NI(qd);
+    $(`bqd${i}`).className=qd<0?'err':'red-val';
+    // estado
+    let st='';
+    if(qd<0) st=`<span class="err">DÉFICIT</span>`;
+    else if(sk<pm*1.05) st=`<span class="warn">STOCK JUSTO</span>`;
+    else st=`<span class="ok">OK</span>`;
+    $(`bst${i}`).innerHTML=st;
+    skT+=sk;ehT+=eh;pmT+=pm;qdT+=qd;
+  });
+  $('bol-sk').textContent=NI(skT);
+  $('bol-eh').textContent=NI(ehT);
+  $('bol-pm').textContent=NI(pmT);
+  $('bol-qd').textContent=NI(qdT);
+  $('bol-qd').className=qdT<0?'err':'red-val';
+
+  const deficit=BOLETOS.filter((_,i)=>v(`bsk${i}`)-( BOLETOS[i].tipo==='alm'?getManTotals().alm[{35:0,17:1,10:2}[BOLETOS[i].den]]:getManTotals().par[{35:0,17:1,10:2}[BOLETOS[i].den]])<0).length;
+  $('stats-bol').innerHTML=`
+    <div class="stat"><div class="sl">Stock Total Bóveda</div><div class="sv a">${NI(skT)}</div></div>
+    <div class="stat"><div class="sl">Entregado Hoy</div><div class="sv">${NI(ehT)}</div></div>
+    <div class="stat"><div class="sl">Planilla Mañana</div><div class="sv">${NI(pmT)}</div></div>
+    <div class="stat"><div class="sl">Quedan en Bóveda</div><div class="sv ${qdT<0?'r':'r'}">${NI(qdT)}</div></div>
+    <div class="stat"><div class="sl">Tipos con déficit</div><div class="sv ${deficit>0?'r':'g'}">${deficit}</div></div>`;
+}
+
+// ═══ BUILD PLANILLAS HOY ═══
+(function(){
+  // 35 paradas
+  PAR35.forEach((p,i)=>{
+    const d=HOY_PAR[i];
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="color:var(--muted)">${i+1}</td><td>${p}</td>
+      <td><input type="number" id="hp35${i}" min="0" value="${d[0]}" onchange="calcHoy()"></td>
+      <td><input type="number" id="hp17${i}" min="0" value="${d[1]}" onchange="calcHoy()"></td>
+      <td><input type="number" id="hp10${i}" min="0" value="${d[2]}" onchange="calcHoy()"></td>
+      <td><input type="number" id="hef${i}" min="0" value="${d[3]}" step="0.01" onchange="calcHoy()" style="border-color:var(--accent)"></td>
+      <td class="auto" id="hpsub${i}">0.00</td>`;
+    $('tb-hpar').appendChild(tr);
+  });
+  // 4 alimentadoras
+  ALM4.forEach((a,i)=>{
+    const d=HOY_ALM[i];
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="color:var(--muted)">${i+1}</td><td>${a}</td>
+      <td><input type="number" id="ha35${i}" min="0" value="${d[0]}" onchange="calcHoy()"></td>
+      <td><input type="number" id="ha17${i}" min="0" value="${d[1]}" onchange="calcHoy()"></td>
+      <td><input type="number" id="ha10${i}" min="0" value="${d[2]}" onchange="calcHoy()"></td>
+      <td class="auto" id="hasub${i}">0.00</td>`;
+    $('tb-halm').appendChild(tr);
+  });
+  calcHoy();
+})();
+
+function calcHoy(){
+  let p35=0,p17=0,p10=0,pef=0,psub=0;
+  PAR35.forEach((_,i)=>{
+    const a=v(`hp35${i}`),b=v(`hp17${i}`),c=v(`hp10${i}`),e=v(`hef${i}`);
+    const sub=a*0.35+b*0.17+c*0.10+e;
+    $(`hpsub${i}`).textContent='$'+N(sub);
+    p35+=a;p17+=b;p10+=c;pef+=e;psub+=sub;
+  });
+  $('hp35-t').textContent=NI(p35);$('hp17-t').textContent=NI(p17);$('hp10-t').textContent=NI(p10);
+  $('hpef-t').textContent='$'+N(pef);$('hpsub-t').textContent='$'+N(psub);
+
+  let a35=0,a17=0,a10=0,asub=0;
+  ALM4.forEach((_,i)=>{
+    const a=v(`ha35${i}`),b=v(`ha17${i}`),c=v(`ha10${i}`);
+    const sub=a*0.35+b*0.17+c*0.10;
+    $(`hasub${i}`).textContent='$'+N(sub);
+    a35+=a;a17+=b;a10+=c;asub+=sub;
+  });
+  $('ha35-t').textContent=NI(a35);$('ha17-t').textContent=NI(a17);$('ha10-t').textContent=NI(a10);
+  $('hasub-t').textContent='$'+N(asub);
+
+  $('htot35').textContent=NI(p35+a35);
+  $('htot17').textContent=NI(p17+a17);
+  $('htot10').textContent=NI(p10+a10);
+  $('htotef').textContent='$'+N(pef);
+  $('htotsub').textContent='$'+N(psub+asub);
+
+  $('stats-hoy').innerHTML=`
+    <div class="stat"><div class="sl">Paradas</div><div class="sv a">35</div></div>
+    <div class="stat"><div class="sl">Alimentadoras</div><div class="sv a">4</div></div>
+    <div class="stat"><div class="sl">Total B $0.35</div><div class="sv">${NI(p35+a35)}</div></div>
+    <div class="stat"><div class="sl">Total B $0.17</div><div class="sv">${NI(p17+a17)}</div></div>
+    <div class="stat"><div class="sl">Total B $0.10</div><div class="sv">${NI(p10+a10)}</div></div>
+    <div class="stat"><div class="sl">Efectivo Inicial (35)</div><div class="sv g">$${N(pef)}</div></div>`;
+
+  calcDin();calcBol();
+}
+
+// ═══ BUILD PLANILLAS MAÑANA ═══
+(function(){
+  PAR35.forEach((p,i)=>{
+    const d=MAN_PAR[i];
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="color:var(--muted)">${i+1}</td><td>${p}</td>
+      <td><input type="number" id="mp35${i}" min="0" value="${d[0]}" onchange="calcMan()"></td>
+      <td><input type="number" id="mp17${i}" min="0" value="${d[1]}" onchange="calcMan()"></td>
+      <td><input type="number" id="mp10${i}" min="0" value="${d[2]}" onchange="calcMan()"></td>
+      <td class="auto" id="mpsub${i}">0.00</td>`;
+    $('tb-mpar').appendChild(tr);
+  });
+  ALM4.forEach((a,i)=>{
+    const d=MAN_ALM[i];
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="color:var(--muted)">${i+1}</td><td>${a}</td>
+      <td><input type="number" id="ma35${i}" min="0" value="${d[0]}" onchange="calcMan()"></td>
+      <td><input type="number" id="ma17${i}" min="0" value="${d[1]}" onchange="calcMan()"></td>
+      <td><input type="number" id="ma10${i}" min="0" value="${d[2]}" onchange="calcMan()"></td>
+      <td class="auto" id="masub${i}">0.00</td>`;
+    $('tb-malm').appendChild(tr);
+  });
+  calcMan();
+})();
+
+function calcMan(){
+  let p35=0,p17=0,p10=0,psub=0;
+  PAR35.forEach((_,i)=>{
+    const a=v(`mp35${i}`),b=v(`mp17${i}`),c=v(`mp10${i}`);
+    const sub=a*0.35+b*0.17+c*0.10;
+    $(`mpsub${i}`).textContent='$'+N(sub);
+    p35+=a;p17+=b;p10+=c;psub+=sub;
+  });
+  $('mp35-t').textContent=NI(p35);$('mp17-t').textContent=NI(p17);$('mp10-t').textContent=NI(p10);
+  $('mpsub-t').textContent='$'+N(psub);
+
+  let a35=0,a17=0,a10=0,asub=0;
+  ALM4.forEach((_,i)=>{
+    const a=v(`ma35${i}`),b=v(`ma17${i}`),c=v(`ma10${i}`);
+    const sub=a*0.35+b*0.17+c*0.10;
+    $(`masub${i}`).textContent='$'+N(sub);
+    a35+=a;a17+=b;a10+=c;asub+=sub;
+  });
+  $('ma35-t').textContent=NI(a35);$('ma17-t').textContent=NI(a17);$('ma10-t').textContent=NI(a10);
+  $('masub-t').textContent='$'+N(asub);
+
+  $('mtot35').textContent=NI(p35+a35);
+  $('mtot17').textContent=NI(p17+a17);
+  $('mtot10').textContent=NI(p10+a10);
+  $('mtotsub').textContent='$'+N(psub+asub);
+
+  $('stats-man').innerHTML=`
+    <div class="stat"><div class="sl">Paradas</div><div class="sv a">35</div></div>
+    <div class="stat"><div class="sl">Alimentadoras</div><div class="sv a">4</div></div>
+    <div class="stat"><div class="sl">Total B $0.35</div><div class="sv">${NI(p35+a35)}</div></div>
+    <div class="stat"><div class="sl">Total B $0.17</div><div class="sv">${NI(p17+a17)}</div></div>
+    <div class="stat"><div class="sl">Total B $0.10</div><div class="sv">${NI(p10+a10)}</div></div>
+    <div class="stat"><div class="sl">Gran Total Mañana</div><div class="sv g">$${N(psub+asub)}</div></div>`;
+
+  calcBol();
+}
+
+// ═══ REPORTE ═══
+function buildRpt(){
+  const fecha=$('fecha').value;
+  const turno=$('turno').options[$('turno').value-1].text;
+  const obs=$('obs').value||'Sin novedades.';
+
+  let bolRows='';
+  BOLETOS.forEach((b,i)=>{
+    const qd=$(`bqd${i}`).textContent;
+    const qdNum=parseInt($(`bqd${i}`).textContent.replace(/\./g,'').replace(',','.'));
+    bolRows+=`<tr>
+      <td><span class="tag ${b.tag}">${b.tipo.toUpperCase()}</span> ${b.l}</td>
+      <td class="r">${$(`bsk${i}`).value}</td>
+      <td class="r auto">${$(`beh${i}`).textContent}</td>
+      <td class="r auto">${$(`bpm${i}`).textContent}</td>
+      <td class="r red-val">${qd}</td>
+      <td>${$(`bst${i}`).innerHTML}</td>
+    </tr>`;
+  });
+
+  let parRows='';
+  PAR35.forEach((_,i)=>{
+    parRows+=`<tr><td style="color:var(--muted)">${i+1}</td><td>${PAR35[i]}</td>
+      <td class="r">${$(`hp35${i}`).value}</td><td class="r">${$(`hp17${i}`).value}</td>
+      <td class="r">${$(`hp10${i}`).value}</td>
+      <td class="r">${$(`hef${i}`).value}</td>
+      <td class="r auto">${$(`hpsub${i}`).textContent}</td></tr>`;
+  });
+  let almRows='';
+  ALM4.forEach((_,i)=>{
+    almRows+=`<tr><td style="color:var(--muted)">${i+1}</td><td>${ALM4[i]}</td>
+      <td class="r">${$(`ha35${i}`).value}</td><td class="r">${$(`ha17${i}`).value}</td>
+      <td class="r">${$(`ha10${i}`).value}</td>
+      <td class="r auto">${$(`hasub${i}`).textContent}</td></tr>`;
+  });
+
+  $('rpt').innerHTML=`
+    <div style="border:2px solid var(--accent);border-radius:var(--r);padding:16px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px">
+        <div><div style="font-size:18px;font-weight:700">Reporte de Cambio de Turno</div>
+          <div style="color:var(--muted);font-size:13px;margin-top:2px">${turno} &nbsp;·&nbsp; ${fecha}</div></div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--muted)">Gran Total Bóveda</div>
+          <div style="font-size:26px;font-weight:700;color:var(--green)">$${$('gt').textContent}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Efectivo Planillas: $${$('hpef-t').textContent.replace('$','')}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="card" style="margin:0">
+        <div class="ctitle">Resumen Dinero</div>
+        <table>
+          <tr><td>Fondo Total</td><td class="r auto">${$('gf').textContent}</td></tr>
+          <tr><td>Entregado (planillas)</td><td class="r auto">${$('ge').textContent}</td></tr>
+          <tr><td>Saldo Caja (físico)</td><td class="r">${$('gs').textContent}</td></tr>
+          <tr class="ft"><td>Gran Total</td><td class="r auto">$${$('gt').textContent}</td></tr>
+        </table>
+        <div style="margin-top:10px">${$('val-din').innerHTML}</div>
+      </div>
+      <div class="card" style="margin:0">
+        <div class="ctitle">Resumen Planillas</div>
+        <table>
+          <tr><td>Efectivo inicial (35 paradas)</td><td class="r auto">${$('hpef-t').textContent}</td></tr>
+          <tr><td>Total planillas hoy</td><td class="r auto">${$('htotsub').textContent}</td></tr>
+          <tr><td>Total planillas mañana</td><td class="r auto">${$('mtotsub').textContent}</td></tr>
+          <tr class="ft"><td>Paradas / Alimentadoras</td><td class="r">35 / 4</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Control de Boletos — Bóveda Física Pendiente</div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Boleto</th><th class="r">Stock</th><th class="r">Entregado Hoy</th><th class="r">Plan. Mañana</th><th class="r" style="color:var(--red)">Quedan Bóveda</th><th>Estado</th></tr></thead>
+          <tbody>${bolRows}</tbody>
+          <tfoot><tr class="ft"><td>TOTALES</td><td class="r">${$('bol-sk').textContent}</td><td class="r">${$('bol-eh').textContent}</td><td class="r">${$('bol-pm').textContent}</td><td class="r red-val">${$('bol-qd').textContent}</td><td></td></tr></tfoot>
+        </table>
+      </div>
+      <div style="font-size:12px;color:var(--red);margin-top:8px;font-weight:600">▼ La columna "Quedan Bóveda" debe verificarse físicamente en bodega antes de cerrar el turno.</div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Planillas Hoy — 35 Paradas</div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>#</th><th>Parada</th><th class="r">$0.35</th><th class="r">$0.17</th><th class="r">$0.10</th><th class="r">Ef. Inicial</th><th class="r">Subtotal</th></tr></thead>
+          <tbody>${parRows}</tbody>
+          <tfoot><tr class="ft"><td colspan="2">TOTAL</td><td class="r">${$('hp35-t').textContent}</td><td class="r">${$('hp17-t').textContent}</td><td class="r">${$('hp10-t').textContent}</td><td class="r auto">${$('hpef-t').textContent}</td><td class="r">${$('hpsub-t').textContent}</td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Planillas Hoy — 4 Alimentadoras</div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>#</th><th>Alimentadora</th><th class="r">$0.35</th><th class="r">$0.17</th><th class="r">$0.10</th><th class="r">Subtotal</th></tr></thead>
+          <tbody>${almRows}</tbody>
+          <tfoot><tr class="ft"><td colspan="2">TOTAL</td><td class="r">${$('ha35-t').textContent}</td><td class="r">${$('ha17-t').textContent}</td><td class="r">${$('ha10-t').textContent}</td><td class="r">${$('hasub-t').textContent}</td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">Observaciones</div>
+      <div style="font-size:13px;line-height:1.7">${obs}</div>
+    </div>
+
+    <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:32px;font-size:13px">
+      <div><div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:30px">Entrega turno</div><div style="border-bottom:1px solid var(--border)"></div><div style="color:var(--muted);font-size:11px;margin-top:4px">Firma / Nombre</div></div>
+      <div><div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:30px">Recibe turno</div><div style="border-bottom:1px solid var(--border)"></div><div style="color:var(--muted);font-size:11px;margin-top:4px">Firma / Nombre</div></div>
+      <div><div style="color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:30px">Supervisión</div><div style="border-bottom:1px solid var(--border)"></div><div style="color:var(--muted);font-size:11px;margin-top:4px">Firma / Nombre</div></div>
+    </div>`;
+}
+
+// ═══ EXPORT CSV ═══
+// ═══════════════════════════════════════════════════════════
+//  INFORME EPQ — C.TROLE
+// ═══════════════════════════════════════════════════════════
+function buildTrole(){
+  const fecha=$('fecha').value||new Date().toISOString().split('T')[0];
+  const turno=$('turno').options[$('turno').value-1]?.text||'1ERO';
+  const turnoLabel=turno.includes('1')?'1ERO':turno.includes('2')?'2DO':'3ERO';
+
+  // ── Dinero ──
+  const monedas=[
+    {den:'0.01', f:v('mf5'), s:v('ms5')},
+    {den:'0.05', f:v('mf4'), s:v('ms4')},
+    {den:'0.10', f:v('mf3'), s:v('ms3')},
+    {den:'0.25', f:v('mf2'), s:v('ms2')},
+    {den:'0.50', f:v('mf1'), s:v('ms1')},
+    {den:'1.00', f:v('mf0'), s:v('ms0')},
+  ];
+  const billetes=[
+    {den:'1',  f:v('bf5'), s:v('bs5')},
+    {den:'5',  f:v('bf4'), s:v('bs4')},
+    {den:'10', f:v('bf3'), s:v('bs3')},
+    {den:'20', f:v('bf2'), s:v('bs2')},
+  ];
+  const fondoFijo=monedas.reduce((a,m)=>a+m.f+m.s,0)+billetes.reduce((a,b)=>a+b.f+b.s,0);
+
+  // ── Boletos entregados HOY ──
+  let par35=0,par17=0,par10=0,alm35=0,alm17=0,alm10=0;
+  PAR35.forEach((_,i)=>{par35+=v(`hp35${i}`);par17+=v(`hp17${i}`);par10+=v(`hp10${i}`);});
+  ALM4.forEach((_,i)=>{alm35+=v(`ha35${i}`);alm17+=v(`ha17${i}`);alm10+=v(`ha10${i}`);});
+
+  // ── Stock físico bóveda (= BOL_STOCK input) ──
+  const fisAlm35=v('bsk0'), fisAlm17=v('bsk1'), fisAlm10=v('bsk2');
+  const fisPar35=v('bsk3'), fisPar17=v('bsk4'), fisPar10=v('bsk5');
+
+  // ── Kardex = físico + entregado hoy ──
+  const N=(n,d=0)=>Number(n).toLocaleString('es-EC',{minimumFractionDigits:d,maximumFractionDigits:d});
+  const obs=$('obs').value||'S/N';
+
+  // ── Efectivo entregado total (planillas) ──
+  let efTotal=0;
+  PAR35.forEach((_,i)=>efTotal+=v(`hef${i}`));
+
+  // ── Render HTML ──
+  const css=`
+    table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:8px}
+    th{background:#1a3a6b;color:#fff;padding:4px 6px;text-align:center;font-size:9px;border:1px solid #999}
+    td{padding:3px 6px;border:1px solid #ccc;vertical-align:middle}
+    td.r{text-align:right} td.c{text-align:center}
+    .hdr{text-align:center;font-weight:bold;margin-bottom:4px}
+    .section{background:#1a3a6b;color:#fff;font-weight:bold;padding:4px 8px;font-size:10px;margin:10px 0 4px}
+    .lbl{font-weight:bold;color:#222}
+    .total-row td{background:#e8eef7;font-weight:bold}
+    .firma{border-top:1px solid #333;padding-top:4px;text-align:center;font-size:9px;margin-top:30px}
+    p{margin:2px 0}
+  `;
+
+  let dinRows='';
+  const allDen=[...monedas.map(m=>({tipo:'MONEDAS',den:m.den,f:m.f,s:m.s})),
+                ...billetes.map(b=>({tipo:'BILLETES',den:b.den,f:b.f,s:b.s}))];
+  let totE=0,totF=0,totA=0,totT=0;
+  allDen.forEach(d=>{
+    const t=d.f+0+d.s;
+    totE+=d.f;totA+=0;totF+=d.s;totT+=t;
+    dinRows+=`<tr><td>${d.tipo}</td><td class="c">${d.den}</td><td class="r">${N(d.f,2)}</td><td class="r">-</td><td class="r">${N(d.s,2)}</td><td class="r">${N(t,2)}</td></tr>`;
+  });
+  dinRows+=`<tr class="total-row"><td colspan="2">TOTAL</td><td class="r">${N(totE,2)}</td><td class="r">-</td><td class="r">${N(totF,2)}</td><td class="r">${N(totT,2)}</td></tr>`;
+
+  const bolData=[
+    ['B. ALIMENTADOR 0,35', fisAlm35+alm35, alm35, fisAlm35],
+    ['B. ALIMENTADOR 0,17', fisAlm17+alm17, alm17, fisAlm17],
+    ['B. ALIMENTADOR 0,10', fisAlm10+alm10, alm10, fisAlm10],
+    ['B.PARADA  $0,35',     fisPar35+par35, par35, fisPar35],
+    ['B.PARADA $0,17',      fisPar17+par17, par17, fisPar17],
+    ['B.PARADA $0,10',      fisPar10+par10, par10, fisPar10],
+    ['FICHAS 0,12',          0,0,0],
+    ['B.TROLE TOUR 0,50',    0,0,0],
+    ['B.TROLE TOUR 1,00',    0,0,0],
+    ['B.TROLE TOUR 2,00',    0,0,0],
+  ];
+  let bolRows='';
+  bolData.forEach(([esp,kar,ent,fis])=>{
+    const dif=kar-( fis+ent);
+    bolRows+=`<tr><td>${esp}</td><td class="r">${kar?N(kar):''}</td><td></td><td class="r">${ent?N(ent):''}</td><td class="r">${fis?N(fis):''}</td><td class="r">-</td><td class="r">${kar?N(kar):''}</td><td></td><td class="r">${dif===0?'-':N(dif)}</td></tr>`;
+  });
+
+  $('trole-report').innerHTML=`<style>${css}</style>
+  <div class="hdr" style="font-size:12px">EMPRESA PÚBLICA METROPOLITANA DE TRANSPORTE DE PASAJEROS DE QUITO</div>
+  <div class="hdr" style="font-size:11px">COORDINACIÓN DE FISCALIZACIÓN OPERATIVA</div>
+  <div class="hdr" style="font-size:13px;margin:6px 0">ARQUEO DE VALORES EN BÓVEDA</div>
+
+  <table style="margin-bottom:6px;font-size:10px;border:none">
+    <tr style="border:none">
+      <td style="border:none;width:80px" class="lbl">CORREDOR:</td>
+      <td style="border:none;width:120px">TROLEBUS</td>
+      <td style="border:none;width:90px" class="lbl">HORA INICIO:</td>
+      <td style="border:none;width:80px"></td>
+      <td style="border:none" class="lbl">SUPERVISORES DE CAJA:</td>
+      <td style="border:none"></td>
+    </tr>
+    <tr style="border:none">
+      <td style="border:none" class="lbl">FECHA:</td>
+      <td style="border:none">${fecha}</td>
+      <td style="border:none" class="lbl">HORA FINAL:</td>
+      <td style="border:none"></td>
+      <td style="border:none"></td><td style="border:none"></td>
+    </tr>
+    <tr style="border:none">
+      <td style="border:none" class="lbl">FONDO FIJO:</td>
+      <td style="border:none">${N(fondoFijo,2)}</td>
+      <td style="border:none" class="lbl">TURNO:</td>
+      <td style="border:none">${turnoLabel}</td>
+      <td style="border:none"></td><td style="border:none"></td>
+    </tr>
+  </table>
+
+  <div class="section">1. ARQUEO FONDO FIJO (DINERO)</div>
+  <table>
+    <thead><tr>
+      <th colspan="2">DENOMINACIÓN</th>
+      <th>VALOR EFECTIVO ENTREGADOS SEGÚN PLANILLAS (DESPACHADO)</th>
+      <th>ABASTECIMIENTO (+)</th>
+      <th>VALOR EFECTIVO EN BÓVEDA (FÍSICO)</th>
+      <th>TOTAL</th>
+    </tr></thead>
+    <tbody>${dinRows}</tbody>
+  </table>
+  <table style="font-size:10px">
+    <tr><td class="lbl" colspan="3">VALOR FONDO FIJO ASIGNADO SEGÚN CERTIFICACIÓN</td><td class="r">${N(fondoFijo,2)}</td></tr>
+    <tr><td class="lbl" colspan="3">VALOR SEGÚN VERIFICACION FÍSICA DE BOVEDA Y PLANILLAS</td><td class="r">${N(totT,2)}</td></tr>
+    <tr><td colspan="2">DIFERENCIA</td><td></td><td class="r" style="color:${Math.abs(fondoFijo-totT)<0.01?'green':'red'};font-weight:bold">${Math.abs(fondoFijo-totT)<0.01?'---------':N(fondoFijo-totT,2)}</td></tr>
+  </table>
+  <p><span class="lbl">OBSERVACIÓN:</span> ${obs}</p>
+
+  <div class="section">2. ARQUEO ESPECIES VALORADAS</div>
+  <table>
+    <thead><tr>
+      <th>ESPECIES VALORADAS ALIMENTADOR</th>
+      <th>KARDEX</th><th></th>
+      <th>ENTREGADO SEGÚN PLANILLAS</th>
+      <th>FÍSICO EN BODEGA DE BÓVEDA</th>
+      <th>ABASTECIMIENTO (+) TRANSFERENCIA (-)</th>
+      <th>TOTAL</th><th></th>
+      <th>DIFERENCIA</th>
+    </tr></thead>
+    <tbody>${bolRows}</tbody>
+  </table>
+  <p><span class="lbl">OBSERVACIÓN:</span> S/N</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px">
+    <div class="firma">
+      <p>………………………………………………………</p>
+      <p class="lbl">FISCALIZADOR (ES)</p>
+    </div>
+    <div class="firma">
+      <p>………………………………………………………</p>
+      <p class="lbl">SUPERVISOR DE CAJA</p>
+      <p>NOMBRE:</p>
+    </div>
+  </div>`;
+}
+
+function printTrole(){
+  const content=$('trole-report').innerHTML;
+  const w=window.open('','_blank');
+  w.document.write('<html><head><title>Informe C.TROLE</title><style>body{font-family:Arial,sans-serif;margin:20px}@media print{body{margin:10px}}</style></head><body>'+content+'</body></html>');
+  w.document.close();
+  w.print();
+}
+
+
+function exportCSV(){
+  const fecha=$('fecha').value, turno=$('turno').options[$('turno').value-1].text;
+  let c=`ARQUEO DE BÓVEDA\nFecha,${fecha}\nTurno,${turno}\n\n`;
+  c+=`BOLETOS EN BÓVEDA\nTipo,Stock,Entregado Hoy,Planilla Mañana,Quedan Bóveda\n`;
+  BOLETOS.forEach((b,i)=>c+=`${b.l},${$(`bsk${i}`).value},${$(`beh${i}`).textContent},${$(`bpm${i}`).textContent},${$(`bqd${i}`).textContent}\n`);
+  c+=`\nPLANILLAS HOY — 35 PARADAS\nParada,B $0.35,B $0.17,B $0.10,Ef. Inicial,Subtotal\n`;
+  PAR35.forEach((_,i)=>c+=`${PAR35[i]},${$(`hp35${i}`).value},${$(`hp17${i}`).value},${$(`hp10${i}`).value},${$(`hef${i}`).value},${$(`hpsub${i}`).textContent}\n`);
+  c+=`\nPLANILLAS HOY — 4 ALIMENTADORAS\nAlimentadora,B $0.35,B $0.17,B $0.10,Subtotal\n`;
+  ALM4.forEach((_,i)=>c+=`${ALM4[i]},${$(`ha35${i}`).value},${$(`ha17${i}`).value},${$(`ha10${i}`).value},${$(`hasub${i}`).textContent}\n`);
+  const blob=new Blob(['\uFEFF'+c],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`Arqueo_${fecha}_T${$('turno').value}.csv`;a.click();
+}
+
+// ═══ RESET ═══
+function resetAll(){
+  if(!confirm('\u00bfEncerar TODOS los datos? Esta acci\u00f3n no se puede deshacer.'))return;
+  doReset();
+}
+function doReset(){
+  MONEDAS.forEach((_,i)=>{$(`mf${i}`).value=0;$(`ms${i}`).value=0;});
+  BILLETES.forEach((_,i)=>{$(`bf${i}`).value=0;$(`bs${i}`).value=0;});
+  $('of').value=0;$('oe').value=0;$('os').value=0;$('obs').value='';
+  BOLETOS.forEach((_,i)=>{$(`bsk${i}`).value=0;});
+  PAR35.forEach((_,i)=>{
+    $(`hp35${i}`).value=0;$(`hp17${i}`).value=0;
+    $(`hp10${i}`).value=0;$(`hef${i}`).value=0;
+  });
+  ALM4.forEach((_,i)=>{
+    $(`ha35${i}`).value=0;$(`ha17${i}`).value=0;$(`ha10${i}`).value=0;
+  });
+  PAR35.forEach((_,i)=>{
+    $(`mp35${i}`).value=0;$(`mp17${i}`).value=0;$(`mp10${i}`).value=0;
+  });
+  ALM4.forEach((_,i)=>{
+    $(`ma35${i}`).value=0;$(`ma17${i}`).value=0;$(`ma10${i}`).value=0;
+  });
+  calcDin();calcHoy();calcMan();calcBol();
+  const fab=$('voz-fab');
+  if(fab){fab.textContent='\u2705';setTimeout(()=>fab.textContent='\U0001f3a4',1500);}
+}
+
+
+
+// ═══════════════════════════════════════════════════════════
+//  SISTEMA DE VOZ — continuous=true, micrófono NUNCA se cierra
+// ═══════════════════════════════════════════════════════════
+
+function spanishToNum(txt){
+  txt=(txt||'').toLowerCase().trim();
+
+  // ── 1. Texto puro de dígitos (con o sin separadores de miles) ──
+  const sd=txt.replace(/\s/g,'');
+  if(/^\d{1,3}([.,]\d{3})+$/.test(sd)) return parseInt(sd.replace(/[.,]/g,''),10);
+  const sinSep=sd.replace(/[.,]/g,'');
+  if(/^\d+$/.test(sinSep)&&sinSep.length) return parseInt(sinSep,10);
+  const d=parseFloat(sd);
+  if(!isNaN(d)&&/^\d/.test(sd)) return d;
+
+  // ── 2. Pre-procesar texto mixto (palabras + dígitos) ──
+  // Chrome a veces envía "un millón 361,570" o "un millón 361.570"
+  // Normalizar grupos de dígitos con separadores → dígitos puros
+  // Ej: "361,570" → "361570", "1.361.570" → "1361570"
+  txt=txt.replace(/\b(\d{1,3}(?:[.,]\d{3})+)\b/g, m=>m.replace(/[.,]/g,''));
+  // Ahora "un millón 361570" puede procesarse correctamente
+
+  // ── 3. Diccionario extendido con variantes de pronunciación ──
+  const A={
+    'cero':0,'un':1,'uno':1,'una':1,'dos':2,'tres':3,'cuatro':4,'cinco':5,
+    'seis':6,'siete':7,'ocho':8,'nueve':9,'diez':10,'once':11,'doce':12,
+    'trece':13,'catorce':14,'quince':15,
+    'dieciseis':16,'dieciséis':16,'diecisiete':17,'dieciocho':18,'diecinueve':19,
+    'veinte':20,'veintiuno':21,'veintiún':21,'veintidós':22,'veintidos':22,
+    'veintitrés':23,'veintitres':23,'veinticuatro':24,'veinticinco':25,
+    'veintiséis':26,'veintiseis':26,'veintisiete':27,'veintiocho':28,'veintinueve':29,
+    'treinta':30,'cuarenta':40,'cincuenta':50,'sesenta':60,'setenta':70,
+    'ochenta':80,'noventa':90,
+    'cien':100,'ciento':100,
+    'doscientos':200,'doscientas':200,'docientos':200,'docientas':200,
+    'trescientos':300,'trescientas':300,'trecientos':300,'trecientas':300,
+    'cuatrocientos':400,'cuatrocientas':400,
+    'quinientos':500,'quinientas':500,'quientos':500,
+    'seiscientos':600,'seiscientas':600,'seicientos':600,'seicientas':600,
+    'setecientos':700,'setecientas':700,'sietecientos':700,
+    'ochocientos':800,'ochocientas':800,'ochosientos':800,
+    'novecientos':900,'novecientas':900,'nuevecientos':900
+  };
+  if(A[txt]!==undefined) return A[txt];
+
+  // ── 4. Parser compuesto: millones → miles → centenas/decenas/unidades ──
+  // También maneja tokens numéricos puros dentro del texto
+  const words=txt.split(/\s+/);
+  let result=0,cur=0;
+  for(const w of words){
+    if(!w||w==='y'||w==='con'||w==='de'||w==='e') continue;
+    // Token numérico puro (ej: "361570" después del pre-proceso)
+    if(/^\d+$/.test(w)){
+      const n=parseInt(w,10);
+      // Si ya tenemos millones y el número es grande → es la parte de miles+unidades
+      if(result>=1000000&&n<1000000){ cur+=n; continue; }
+      // Si ya tenemos miles y el número es pequeño → unidades
+      if(result>=1000&&n<1000){ cur+=n; continue; }
+      // Caso general
+      cur+=n; continue;
+    }
+    if(w==='millón'||w==='millon'||w==='millones'||w==='millónes'){
+      cur=cur||1; result+=cur*1000000; cur=0;
+    } else if(w==='mil'||w==='miles'){
+      cur=cur||1; result+=cur*1000; cur=0;
+    } else if(A[w]!==undefined){
+      cur+=A[w];
+    }
+  }
+  const total=result+cur;
+  return total>0?total:null;
+}
+function numIncompleto(txt){
+  const lo=txt.toLowerCase();
+  // Si ya contiene dígitos → Chrome mandó la parte numérica, está completo
+  if(/\d/.test(lo)) return false;
+  // Termina en palabra clave → claramente incompleto
+  if(/\b(mil|millon|millón|millones|ciento)\s*$/.test(lo)) return true;
+  // Contiene millón pero no tiene miles → Chrome cortó antes de "mil"
+  if(/(millon|millón|millones)/.test(lo) && !/\bmil\b/.test(lo)) return true;
+  // Contiene millón + mil pero termina en centenas solas → falta el resto
+  if(/(millon|millón)/.test(lo) && /\bmil\b/.test(lo) &&
+     /\b(doscientos|doscientas|trescientos|trescientas|trecientos|cuatrocientos|quinientos|quinientas|seiscientos|setecientos|ochocientos|novecientos|novecientas)\s*$/.test(lo)) return true;
+  return false;
+}
+
+const VOZ={
+  rec:null, on:false,
+  seqMode:false, fields:[], labels:[], idx:0,
+  singleField:null, supported:false
+};
+
+(function initVoice(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){
+    setTimeout(()=>{const b=document.getElementById('voz-btn-hdr');if(b)b.textContent='Sin soporte (usa Chrome)';},800);
+    return;
+  }
+  VOZ.supported=true;
+  // Obtener stream de audio y mantenerlo vivo — previene que Chrome pida permiso de nuevo
+  navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
+    VOZ._stream=stream; // stream vivo = permiso permanente durante la sesión
+  }).catch(()=>{});
+  const rec=new SR();
+  rec.lang='es-EC';
+  rec.continuous=true;
+  rec.interimResults=true;
+  rec.maxAlternatives=3;
+  VOZ.rec=rec;
+
+  // ── WATCHDOG: detecta congelamiento sin reiniciar el mic ──
+  // NO llama rec.start() — solo alerta al usuario para que pulse el botón
+  let _wdTimer=null;
+  function resetWatchdog(){
+    clearTimeout(_wdTimer);
+    _wdTimer=setTimeout(()=>{
+      if(!VOZ.on) return;
+      // En lugar de reiniciar (causa permiso), avisamos al usuario
+      setStatus('⚠️ Mic pausado — presiona ⏸ para reanudar');
+      setDot(false);
+      VOZ.on=false;
+      updHdr();
+    },12000); // 12s sin actividad = mic congelado
+  }
+
+  rec.onstart=()=>{
+    setDot(true);
+    setStatus('Escuchando...');
+    resetWatchdog();
+  };
+
+  rec.onend=()=>{
+    clearTimeout(_wdTimer);
+    if(VOZ.on){
+      // Reinicio INMEDIATO (0ms) para no perder audio entre fragmentos
+      // Si falla, intentar a los 50ms — nunca más de eso
+      let restarted=false;
+      try{ rec.start(); restarted=true; resetWatchdog(); }catch(e){}
+      if(!restarted){
+        setTimeout(()=>{
+          if(VOZ.on) try{ rec.start(); resetWatchdog(); }catch(e){
+            // Si sigue fallando, avisar al usuario
+            setStatus('⚠️ Mic pausado — presiona ⏸ para reanudar');
+            VOZ.on=false; setDot(false); updHdr();
+          }
+        },50);
+      }
+    } else {
+      setDot(false);
+    }
+  };
+
+  rec.onerror=e=>{
+    if(e.error==='no-speech'){ resetWatchdog(); return; }
+    if(e.error==='aborted') return; // reinicio normal — ignorar
+    if(e.error==='not-allowed'){
+      setStatus('\u26a0\ufe0f Permiso denegado \u2014 activa el mic en Chrome');
+      VOZ.on=false; setDot(false); clearTimeout(_wdTimer); return;
+    }
+    // Otros errores: ignorar, onend se encargará del reinicio
+  };
+
+  rec.onresult=e=>{
+    resetWatchdog();
+    let interim='',final='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal) final+=e.results[i][0].transcript;
+      else interim+=e.results[i][0].transcript;
+    }
+    // Capturar campo objetivo en el primer interino
+    if((interim||final) && !_targetField){
+      _targetField=VOZ.seqMode
+        ? document.getElementById(VOZ.fields[VOZ.idx])
+        : VOZ.singleField;
+    }
+    // CLAVE: si hay número pendiente y el usuario sigue hablando (interim),
+    // resetear el timer — no cortar el número mientras está dictando
+    if(_pending && interim){
+      clearTimeout(_pending.timer);
+      _pending.timer=setTimeout(()=>{
+        if(_pending){
+          const nn=spanishToNum(_pending.buf);
+          if(nn!==null&&nn>=0) writeTo(nn,_pending.fld);
+          else { setStatus('No entendí — repita'); setTimeout(()=>setStatus('Escuchando...'),2000); }
+          _pending=null; _targetField=null;
+        }
+      },4000);
+    }
+    if(interim) setPreview(interim.trim());
+    if(final){
+      processFinal(final.trim());
+    }
+  };
+})();
+
+
+
+// ── Acumulador para números largos partidos por Chrome ──
+// ── ESTADO DEL ACUMULADOR ──
+// _pending: {buf, fld, timer} — tiene su PROPIO campo guardado,
+// completamente independiente de qué campo esté activo ahora.
+// Así el usuario puede hacer clic en el siguiente campo durante
+// la espera de 3s y el número grande igual llega al campo correcto.
+let _pending=null;
+let _targetField=null; // campo capturado al primer interino
+
+// Escribir directamente a un campo específico (sin usar VOZ state)
+function writeTo(val, fld){
+  if(!fld) return;
+  fld.value=val;
+  fld.dispatchEvent(new Event('change'));
+  setPreview('✅ '+val);
+  if(VOZ.seqMode) nextF();
+  else setStatus('✅ '+val+' — escuchando');
+}
+
+function processFinal(txt){
+  const lo=txt.toLowerCase().trim();
+
+  // ── Comandos ──
+  const esComando=/^(encerar|borrar todo|limpiar todo|cero todo|resetear|parar|detener|terminar|stop|salir|siguiente|saltar|skip|pasar|adelante|anterior|atrás|atras|volver|repetir|de nuevo|borrar|limpiar|quitar)/.test(lo)||lo==='cero';
+  if(esComando){
+    // Limpiar pendiente solo si es comando explícito
+    if(_pending){clearTimeout(_pending.timer);_pending=null;}
+    if(/^(encerar|borrar todo|limpiar todo|cero todo|resetear)/.test(lo)){if(confirm('Comando de voz: ¿Encerar TODOS los datos?'))doReset();return;}
+    if(/^(parar|detener|terminar|stop|salir)/.test(lo)){stopVoice();return;}
+    if(/^(siguiente|saltar|skip|pasar|adelante)/.test(lo)){nextF();return;}
+    if(/^(anterior|atrás|atras|volver)/.test(lo)){prevF();return;}
+    if(/^(repetir|de nuevo)/.test(lo)){hlCurrent();return;}
+    if(/^(borrar|limpiar|quitar)$/.test(lo)||lo==='cero'){fillF(0);return;}
+    return;
+  }
+
+  // ── Si hay un fragmento pendiente, intentar combinar con él primero ──
+  if(_pending){
+    const combined=_pending.buf+' '+txt;
+    const n=spanishToNum(combined);
+    if(n!==null&&n>=0){
+      // Número completo — escribir al campo del fragmento anterior
+      clearTimeout(_pending.timer);
+      const fldPrev=_pending.fld;
+      _pending=null; _targetField=null;
+      writeTo(n, fldPrev);
+      return;
+    }
+    // Sigue incompleto — acumular más
+    if(numIncompleto(combined)){
+      clearTimeout(_pending.timer);
+      _pending.buf=combined;
+      setPreview('"'+combined+'"');
+      setStatus('⏳ Esperando resto... continúe dictando');
+      _pending.timer=setTimeout(()=>{
+        if(_pending){
+          const nn=spanishToNum(_pending.buf);
+          if(nn!==null&&nn>=0) writeTo(nn,_pending.fld);
+          else { setStatus('No entendí — repita'); setTimeout(()=>setStatus('Escuchando...'),2000); }
+          _pending=null; _targetField=null;
+        }
+      },3000);
+      return;
+    }
+    // El fragmento nuevo no encaja — descartar pendiente y procesar normal
+    clearTimeout(_pending.timer); _pending=null;
+  }
+
+  // ── Procesar nuevo texto ──
+  const num=spanishToNum(txt);
+
+  // Número incompleto (termina en "mil"/"millón") — crear entrada pendiente
+  if(numIncompleto(txt)){
+    // Capturar el campo objetivo AHORA y guardarlo en _pending
+    const myFld=_targetField||(VOZ.seqMode
+      ? document.getElementById(VOZ.fields[VOZ.idx])
+      : VOZ.singleField);
+    const myTimer=setTimeout(()=>{
+      if(_pending&&_pending.timer===myTimer){
+        const nn=spanishToNum(_pending.buf);
+        if(nn!==null&&nn>=0) writeTo(nn,_pending.fld);
+        else { setStatus('No entendí — repita'); setTimeout(()=>setStatus('Escuchando...'),2000); }
+        _pending=null; _targetField=null;
+      }
+    },3000);
+    _pending={buf:txt, fld:myFld, timer:myTimer};
+    _targetField=null; // liberar — ya está guardado en _pending.fld
+    setPreview('"'+txt+'"');
+    setStatus('⏳ Esperando resto... continúe dictando');
+    return;
+  }
+
+  // Número completo — escribir inmediatamente
+  if(num!==null&&!isNaN(num)&&num>=0){
+    const myFld=_targetField||(VOZ.seqMode
+      ? document.getElementById(VOZ.fields[VOZ.idx])
+      : VOZ.singleField);
+    _targetField=null;
+    writeTo(num, myFld);
+    return;
+  }
+
+  // No reconocido
+  setStatus('No entendí "'+txt.substring(0,20)+'" — repita');
+  setTimeout(()=>setStatus('Escuchando...'),2000);
+}
+
+// fillF: wrapper para comandos de voz que usan el campo activo
+function fillF(val){
+  const fld=_targetField||(VOZ.seqMode
+    ? document.getElementById(VOZ.fields[VOZ.idx])
+    : VOZ.singleField);
+  _targetField=null;
+  writeTo(val, fld);
+}
+
+function nextF(){
+  if(!VOZ.seqMode||!VOZ.fields.length) return;
+  // NO limpiar _pending ni _targetField — writeTo() los limpia
+  if(VOZ.idx<VOZ.fields.length-1){ VOZ.idx++; hlCurrent(); }
+  else {
+    setStatus('✅ ¡Completado! Micrófono sigue activo.');
+    clearHL();
+    VOZ.seqMode=false;
+    $('voz-seq-btn').textContent='▶ Dictado secuencial';
+    $('voz-seq-btn').style.background='var(--accent)';
+    $('voz-prog').textContent='';
+    $('voz-campo').textContent='Completado — micrófono activo';
+  }
+}
+function prevF(){
+  if(!VOZ.seqMode||VOZ.idx<=0) return;
+  VOZ.idx--;hlCurrent();
+}
+function hlCurrent(){
+  clearHL();
+  if(!VOZ.seqMode||!VOZ.fields.length) return;
+  const fld=document.getElementById(VOZ.fields[VOZ.idx]);
+  if(!fld) return;
+  fld.classList.add('voz-hl');
+  fld.style.borderColor='var(--yellow)';
+  fld.style.outline='2px solid var(--yellow)';
+  fld.scrollIntoView({block:'center'});
+  $('voz-campo').textContent=VOZ.labels[VOZ.idx]||VOZ.fields[VOZ.idx];
+  $('voz-prog').textContent=(VOZ.idx+1)+' / '+VOZ.fields.length;
+  setPreview('');
+  setStatus('Escuchando...');
+}
+function clearHL(){
+  document.querySelectorAll('.voz-hl').forEach(el=>{
+    el.classList.remove('voz-hl');el.style.borderColor='';el.style.outline='';
+  });
+}
+
+function buildFields(){
+  const ti=[...document.querySelectorAll('.tab')].findIndex(t=>t.classList.contains('active'));
+  const ids=[],lbs=[];
+  if(ti===0){
+    MONEDAS.forEach((_,i)=>{ ids.push(`mf${i}`);lbs.push(`Fondo — ${MONEDAS[i].l}`); ids.push(`ms${i}`);lbs.push(`Saldo Caja — ${MONEDAS[i].l}`); });
+    BILLETES.forEach((_,i)=>{ ids.push(`bf${i}`);lbs.push(`Fondo — Billete ${BILLETES[i].l}`); ids.push(`bs${i}`);lbs.push(`Saldo Caja — Billete ${BILLETES[i].l}`); });
+  } else if(ti===1){
+    BOLETOS.forEach((_,i)=>{ ids.push(`bsk${i}`);lbs.push(`Stock — ${BOLETOS[i].l}`); });
+  } else if(ti===2){
+    PAR35.forEach((_,i)=>{ ['35','17','10'].forEach(d=>{ ids.push(`hp${d}${i}`);lbs.push(`${PAR35[i]} — B $0.${d}`); }); ids.push(`hef${i}`);lbs.push(`${PAR35[i]} — Efectivo`); });
+    ALM4.forEach((_,i)=>{ ['35','17','10'].forEach(d=>{ ids.push(`ha${d}${i}`);lbs.push(`${ALM4[i]} — B $0.${d}`); }); });
+  } else if(ti===3){
+    PAR35.forEach((_,i)=>{ ['35','17','10'].forEach(d=>{ ids.push(`mp${d}${i}`);lbs.push(`${PAR35[i]} — B $0.${d}`); }); });
+    ALM4.forEach((_,i)=>{ ['35','17','10'].forEach(d=>{ ids.push(`ma${d}${i}`);lbs.push(`${ALM4[i]} — B $0.${d}`); }); });
+  }
+  return{ids,lbs};
+}
+
+// ── ARRANCAR MICRÓFONO — solo se llama UNA VEZ ──
+function startMic(){
+  if(!VOZ.supported){alert('Usa Google Chrome para dictado por voz.');return;}
+  if(VOZ.on) return;
+  VOZ.on=true;
+  try{ VOZ.rec.start(); }catch(e){}
+  updHdr();
+  $('voz-fab').style.background='var(--red)';
+}
+
+function startSeq(){
+  if(!VOZ.supported){alert('Usa Google Chrome para dictado por voz.');return;}
+  const{ids,lbs}=buildFields();
+  if(!ids.length){setStatus('No hay campos en esta pestaña');return;}
+  VOZ.fields=ids;VOZ.labels=lbs;VOZ.idx=0;VOZ.seqMode=true;
+  $('voz-seq-btn').textContent='⏹ Detener secuencial';
+  $('voz-seq-btn').style.background='var(--red)';
+  $('voz-panel').style.display='flex';
+  hlCurrent();
+  // Si el micrófono no está activo, activarlo (pide permiso solo esta vez)
+  if(!VOZ.on) startMic();
+}
+
+function stopVoice(){
+  // Pausa la sesión sin destruirla si es posible
+  VOZ.on=false; VOZ.seqMode=false;
+  clearHL();
+  try{ VOZ.rec.stop(); }catch(e){}
+  setDot(false);
+  setStatus('Micrófono pausado — presiona ▶ para reanudar');
+  setPreview('');
+  $('voz-campo').textContent='Presiona ▶ para iniciar';
+  $('voz-prog').textContent='';
+  $('voz-seq-btn').textContent='▶ Dictado secuencial';
+  $('voz-seq-btn').style.background='var(--accent)';
+  $('voz-fab').style.background='var(--accent)';
+  updHdr();
+}
+
+function startSingle(fieldId,label){
+  // NO limpiar _pending ni _targetField
+  // _targetField sigue apuntando al campo donde el usuario habló
+  // Solo se borra en writeTo() después de escribir exitosamente
+  VOZ.seqMode=false;
+  VOZ.singleField=document.getElementById(fieldId);
+  $('voz-panel').style.display='flex';
+  $('voz-campo').textContent=label||fieldId;
+  $('voz-prog').textContent='Campo individual';
+  setPreview('');
+  clearHL();
+  if(VOZ.singleField){
+    VOZ.singleField.classList.add('voz-hl');
+    VOZ.singleField.style.borderColor='var(--yellow)';
+    VOZ.singleField.style.outline='2px solid var(--yellow)';
+    VOZ.singleField.scrollIntoView({behavior:'smooth',block:'center'});
+  }
+  if(!VOZ.on) startMic();
+  else setStatus('Escuchando...');
+}
+
+function togglePanel(){
+  const p=$('voz-panel');
+  if(p.style.display==='flex'){ p.style.display='none'; stopVoice(); }
+  else { p.style.display='flex'; startMic(); }
+}
+
+function setDot(on){
+  const d=$('voz-dot');if(!d)return;
+  on?d.classList.add('pulse'):d.classList.remove('pulse');
+  d.style.background=on?'var(--red)':'var(--muted)';
+}
+function setStatus(m){const e=$('voz-status');if(e)e.textContent=m;}
+function setPreview(m){const e=$('voz-preview');if(e)e.textContent=m;}
+function updHdr(){
+  const b=$('voz-btn-hdr');if(!b)return;
+  b.textContent=VOZ.on?'🔴 Mic activo':'🎤 Activar voz';
+  b.style.borderColor=VOZ.on?'var(--red)':'var(--accent)';
+  b.style.color=VOZ.on?'var(--red)':'var(--accent)';
+}
+
+function addMicBtns(){
+  document.querySelectorAll('input[type=number]').forEach(inp=>{
+    if(inp.dataset.m||!inp.id) return;
+    inp.dataset.m='1';
+    // inputmode=numeric → teclado numérico en Android sin zoom
+    inp.setAttribute('inputmode','numeric');
+    inp.setAttribute('pattern','[0-9]*');
+    const wrap=document.createElement('div');
+    wrap.style.cssText='display:flex;align-items:center;gap:4px';
+    inp.parentNode.insertBefore(wrap,inp);
+    wrap.appendChild(inp);
+    const btn=document.createElement('button');
+    btn.innerHTML='🎤';btn.title='Dictar este campo';
+    // Min 44px touch target para Android
+    btn.style.cssText='background:rgba(20,184,166,.15);border:1px solid rgba(20,184,166,.3);border-radius:6px;cursor:pointer;font-size:16px;padding:4px 6px;flex-shrink:0;line-height:1;min-width:36px;min-height:36px;touch-action:manipulation;-webkit-tap-highlight-color:transparent';
+    btn.ontouchstart=()=>btn.style.background='rgba(20,184,166,.35)';
+    btn.ontouchend=()=>btn.style.background='rgba(20,184,166,.15)';
+    btn.onclick=(e)=>{
+      e.preventDefault();e.stopPropagation();
+      const row=inp.closest('tr');
+      const ths=inp.closest('table')?.querySelectorAll('th');
+      const ci=[...row?.cells||[]].findIndex(c=>c.contains(inp));
+      const col=ths?.[ci]?.textContent||'';
+      const rowN=row?.cells?.[1]?.textContent||row?.cells?.[0]?.textContent||inp.id;
+      startSingle(inp.id,rowN+' — '+col);
+    };
+    wrap.appendChild(btn);
+  });
+}
+setTimeout(addMicBtns,600);
+
+</script>
+
+<!-- ═══ PANEL DE VOZ ═══ -->
+<div id="voz-panel" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:999;background:#0d1117;border-top:2px solid var(--accent);padding:14px 20px;flex-direction:column;gap:10px;box-shadow:0 -6px 30px rgba(0,0,0,.7)">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div id="voz-dot" style="width:14px;height:14px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:.3s"></div>
+    <div style="flex:1;min-width:0">
+      <div id="voz-campo" style="font-size:13px;font-weight:700;color:var(--accent);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Presiona ▶ para iniciar</div>
+      <div style="display:flex;gap:10px;margin-top:3px">
+        <span id="voz-status" style="font-size:12px;color:var(--muted)">Permiso de micrófono se pide solo la primera vez</span>
+        <span id="voz-prog" style="font-size:12px;font-weight:700;color:var(--muted)"></span>
+      </div>
+    </div>
+    <div id="voz-preview" style="font-size:14px;color:var(--yellow);font-style:italic;text-align:right;min-width:60px;max-width:200px"></div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button id="voz-seq-btn" onclick="VOZ.seqMode?stopVoice():startSeq()" style="flex:1;min-width:140px;padding:14px 16px;border-radius:var(--r);border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:.15s;min-height:52px;touch-action:manipulation">▶ Dictado secuencial</button>
+    <button onclick="prevF()" style="padding:12px 16px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;cursor:pointer" title="Campo anterior">◀</button>
+    <button onclick="nextF()" style="padding:12px 16px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;cursor:pointer" title="Saltar campo">▶</button>
+    <button onclick="VOZ.on?stopVoice():startMic()" style="padding:12px 14px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-size:13px;cursor:pointer" title="Pausar micrófono">⏸</button>
+    <button onclick="$('voz-panel').style.display='none';stopVoice();" style="padding:12px 14px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-size:13px;cursor:pointer">✕</button>
+  </div>
+  <div style="font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:8px;line-height:2">
+    <strong style="color:var(--text)">Comandos de voz:</strong>&nbsp;
+    <span style="color:var(--accent)">"siguiente"</span> saltar &nbsp;·&nbsp;
+    <span style="color:var(--accent)">"anterior"</span> volver &nbsp;·&nbsp;
+    <span style="color:var(--accent)">"borrar"</span> poner cero &nbsp;·&nbsp;
+    <span style="color:var(--accent)">"parar"</span> detener &nbsp;·&nbsp;
+    Números: <span style="color:var(--yellow)">"quinientos"</span>, <span style="color:var(--yellow)">"mil doscientos"</span>, <span style="color:var(--yellow)">"treinta y seis"</span>
+  </div>
+</div>
+
+<button onclick="togglePanel()" id="voz-fab" title="Dictado por voz" style="position:fixed;bottom:24px;right:16px;width:64px;height:64px;border-radius:50%;background:var(--accent);border:none;cursor:pointer;font-size:28px;box-shadow:0 4px 20px rgba(20,184,166,.5);z-index:998;transition:.2s;touch-action:manipulation" onmouseenter="this.style.transform='scale(1.1)'" onmouseleave="this.style.transform='scale(1)'">🎤</button>
+
+<script>
+document.querySelector('.hdr-meta').insertAdjacentHTML('beforeend',
+  '<button id="voz-btn-hdr" onclick="togglePanel()" style="padding:5px 12px;border-radius:var(--r);border:1px solid var(--accent);background:transparent;color:var(--accent);font-size:12px;font-weight:600;cursor:pointer">🎤 Activar voz</button>'
+);
+</script>
+
+<style>
+#voz-dot.pulse{animation:vp .9s ease-in-out infinite}
+@keyframes vp{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.7)}50%{box-shadow:0 0 0 9px rgba(239,68,68,0)}}
+body{padding-bottom:220px}
+@media print{#voz-panel,#voz-fab,#voz-btn-hdr,#mobile-nav{display:none!important}body{padding-bottom:0!important}}
+
+/* ── MOBILE NAV BAR (bottom) ── */
+@media(max-width:600px){
+  /* Tabs superiores: ocultar en móvil, usar nav inferior */
+  .tabs{display:none!important}
+  /* Nav fijo inferior */
+  #mobile-nav{display:flex!important}
+  /* Mover fab más arriba para no tapar nav */
+  #voz-fab{bottom:80px!important;right:12px!important;width:52px!important;height:52px!important;font-size:24px!important}
+  /* Panel de voz encima del nav */
+  #voz-panel{padding-bottom:80px!important}
+  body{padding-bottom:200px!important}
+  /* Header más compacto */
+  .hdr h1,.hdr>div:nth-child(2){font-size:13px}
+  .logo{width:30px!important;height:30px!important}
+  /* Stat values más pequeños */
+  .sv{font-size:16px}
+  /* Ocultar columna observaciones en tablas */
+  td:empty{display:none}
+}
+@media(min-width:601px){#mobile-nav{display:none!important}}
+</style>
+
+<!-- ── MOBILE BOTTOM NAV ── -->
+<div id="mobile-nav" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:997;background:#0d1117;border-top:1px solid var(--border);height:62px;flex-direction:row;align-items:stretch">
+  <button onclick="showTab(0)" class="mnav-btn active" id="mnav0"><span class="mico">💰</span><span>Dinero</span></button>
+  <button onclick="showTab(1)" class="mnav-btn" id="mnav1"><span class="mico">🎫</span><span>Boletos</span></button>
+  <button onclick="showTab(2)" class="mnav-btn" id="mnav2"><span class="mico">🚌</span><span>Hoy</span></button>
+  <button onclick="showTab(3)" class="mnav-btn" id="mnav3"><span class="mico">📅</span><span>Mañana</span></button>
+  <button onclick="showTab(4)" class="mnav-btn" id="mnav4"><span class="mico">📋</span><span>Reporte</span></button>
+  <button onclick="showTab(5)" class="mnav-btn" id="mnav5"><span class="mico">📊</span><span>EPQ</span></button>
+</div>
+<style>
+.mnav-btn{flex:1;background:none;border:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;cursor:pointer;padding:6px 2px;-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:.1s;border-top:2px solid transparent;min-height:62px}
+.mnav-btn .mico{font-size:20px;line-height:1.2}
+.mnav-btn span:last-child{font-size:9px;line-height:1;font-weight:500}
+.mnav-btn.active{color:var(--accent);border-top-color:var(--accent);background:rgba(20,184,166,.06)}
+.mnav-btn:active{background:rgba(20,184,166,.15)}
+</style>
+<script>
+// ── AUTO-SAVE en localStorage: guarda datos entre sesiones ──
+const SAVE_KEY='arqueo_boveda_v2';
+function saveData(){
+  const d={};
+  document.querySelectorAll('input[id],select[id]').forEach(el=>{if(el.id)d[el.id]=el.value;});
+  const obs=document.getElementById('obs');if(obs)d['obs']=obs.value;
+  try{localStorage.setItem(SAVE_KEY,JSON.stringify(d));}catch(e){}
+}
+function restoreData(){
+  try{
+    const raw=localStorage.getItem(SAVE_KEY);
+    if(!raw)return;
+    const d=JSON.parse(raw);
+    Object.entries(d).forEach(([id,val])=>{
+      const el=document.getElementById(id);
+      if(el&&el.tagName!=='BUTTON')el.value=val;
+    });
+    setTimeout(()=>{try{calcDin();calcHoy();calcMan();calcBol();}catch(e){}},400);
+    setStatus && setStatus('✅ Datos restaurados');
+  }catch(e){}
+}
+// Auto-guardar 1.5s después de cada cambio
+let _saveTimer=null;
+document.addEventListener('input',()=>{clearTimeout(_saveTimer);_saveTimer=setTimeout(saveData,1500);});
+document.addEventListener('change',saveData);
+
+// Indicador online/offline
+function updOnline(){
+  const el=document.getElementById('online-ind');
+  if(!el)return;
+  el.textContent=navigator.onLine?'🟢':'🔴';
+  el.title=navigator.onLine?'En línea':'Sin conexión — datos guardados localmente';
+}
+window.addEventListener('online',updOnline);
+window.addEventListener('offline',updOnline);
+
+// Init al cargar
+document.addEventListener('DOMContentLoaded',()=>{
+  showTab(0);
+  updOnline();
+  restoreData();
+});
+</script>
+</body>
+</html>
