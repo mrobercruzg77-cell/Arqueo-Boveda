@@ -357,7 +357,7 @@ function installPWA(){
   <div class="stats" id="stats-hoy"></div>
   <div class="card">
     <div class="ctitle">Planillas Hoy — Turno Actual</div>
-    <div class="sep">35 Paradas (boletos + efectivo inicial)</div>
+    <div class="sep" id="sep-hoy-par">Paradas (boletos + efectivo inicial)</div>
     <div class="tw">
       <table>
         <thead>
@@ -380,7 +380,7 @@ function installPWA(){
       </table>
     </div>
 
-    <div class="sep" style="margin-top:20px">4 Alimentadoras (solo boletos)</div>
+    <div class="sep" id="sep-hoy-alm" style="margin-top:20px">Alimentadoras (solo boletos)</div>
     <div class="tw">
       <table>
         <thead>
@@ -418,7 +418,7 @@ function installPWA(){
   <div class="stats" id="stats-man"></div>
   <div class="card">
     <div class="ctitle">Planillas Mañana — Próximo Turno (solo boletos)</div>
-    <div class="sep">35 Paradas</div>
+    <div class="sep" id="sep-man-par">Paradas</div>
     <div class="tw">
       <table>
         <thead>
@@ -435,7 +435,7 @@ function installPWA(){
       </table>
     </div>
 
-    <div class="sep" style="margin-top:20px">4 Alimentadoras</div>
+    <div class="sep" id="sep-man-alm" style="margin-top:20px">Alimentadoras</div>
     <div class="tw">
       <table>
         <thead>
@@ -824,8 +824,8 @@ function calcHoy(){
   $('htotsub').textContent='$'+N(psub+asub);
 
   $('stats-hoy').innerHTML=`
-    <div class="stat"><div class="sl">Paradas</div><div class="sv a">35</div></div>
-    <div class="stat"><div class="sl">Alimentadoras</div><div class="sv a">4</div></div>
+    <div class="stat"><div class="sl">Paradas</div><div class="sv a">${PAR35.length}</div></div>
+    <div class="stat"><div class="sl">Alimentadoras</div><div class="sv a">${ALM4.length}</div></div>
     <div class="stat"><div class="sl">Total B $0.35</div><div class="sv">${NI(p35+a35)}</div></div>
     <div class="stat"><div class="sl">Total B $0.17</div><div class="sv">${NI(p17+a17)}</div></div>
     <div class="stat"><div class="sl">Total B $0.10</div><div class="sv">${NI(p10+a10)}</div></div>
@@ -886,8 +886,8 @@ function calcMan(){
   $('mtotsub').textContent='$'+N(psub+asub);
 
   $('stats-man').innerHTML=`
-    <div class="stat"><div class="sl">Paradas</div><div class="sv a">35</div></div>
-    <div class="stat"><div class="sl">Alimentadoras</div><div class="sv a">4</div></div>
+    <div class="stat"><div class="sl">Paradas</div><div class="sv a">${PAR35.length}</div></div>
+    <div class="stat"><div class="sl">Alimentadoras</div><div class="sv a">${ALM4.length}</div></div>
     <div class="stat"><div class="sl">Total B $0.35</div><div class="sv">${NI(p35+a35)}</div></div>
     <div class="stat"><div class="sl">Total B $0.17</div><div class="sv">${NI(p17+a17)}</div></div>
     <div class="stat"><div class="sl">Total B $0.10</div><div class="sv">${NI(p10+a10)}</div></div>
@@ -981,7 +981,7 @@ function buildRpt(){
     </div>
 
     <div class="card">
-      <div class="ctitle">Planillas Hoy — 35 Paradas</div>
+      <div class="ctitle">Planillas Hoy — ${PAR35.length} Paradas</div>
       <div class="tw">
         <table>
           <thead><tr><th>#</th><th>Parada</th><th class="r">$0.35</th><th class="r">$0.17</th><th class="r">$0.10</th><th class="r">Ef. Inicial</th><th class="r">Subtotal</th></tr></thead>
@@ -1261,6 +1261,15 @@ function cambiarCorredor(key){
   buildHoyPar(); buildHoyAlm(); buildManPar(); buildManAlm();
   // Mostrar/ocultar sección alimentadoras
   ['alm-hoy-sec','alm-man-sec'].forEach(id=>{const e=$(id);if(e)e.style.display=COR.tieneAlm?'':'none';});
+  // Actualizar etiquetas de sección con conteos dinámicos
+  const sp1=document.getElementById('sep-hoy-par');
+  if(sp1) sp1.textContent=PAR35.length+' Paradas (boletos + efectivo inicial)';
+  const sp2=document.getElementById('sep-hoy-alm');
+  if(sp2) sp2.textContent=ALM4.length+' Alimentadoras (solo boletos)';
+  const sp3=document.getElementById('sep-man-par');
+  if(sp3) sp3.textContent=PAR35.length+' Paradas';
+  const sp4=document.getElementById('sep-man-alm');
+  if(sp4) sp4.textContent=ALM4.length+' Alimentadoras';
   calcDin();calcHoy();calcMan();calcBol();
   try{localStorage.setItem('corredor_activo',key);}catch(e){}
   setStatus&&setStatus('Corredor: '+COR.nombre);
@@ -1410,67 +1419,68 @@ const VOZ={
     return;
   }
   VOZ.supported=true;
-  // Obtener stream de audio y mantenerlo vivo — previene que Chrome pida permiso de nuevo
-  navigator.mediaDevices.getUserMedia({audio:true}).then(stream=>{
-    VOZ._stream=stream; // stream vivo = permiso permanente durante la sesión
-  }).catch(()=>{});
+  // Mantener stream vivo para no perder el permiso
+  navigator.mediaDevices.getUserMedia({audio:true})
+    .then(s=>VOZ._stream=s).catch(()=>{});
+
   const rec=new SR();
-  rec.lang='es-EC';
-  rec.continuous=true;
+  // es-ES = mejor soporte en Android Chrome que es-EC
+  rec.lang='es-ES';
+  // continuous=false en Android es MÁS estable — una sesión por número
+  rec.continuous=false;
   rec.interimResults=true;
   rec.maxAlternatives=3;
   VOZ.rec=rec;
 
-  // ── WATCHDOG: detecta congelamiento sin reiniciar el mic ──
-  // NO llama rec.start() — solo alerta al usuario para que pulse el botón
   let _wdTimer=null;
   function resetWatchdog(){
     clearTimeout(_wdTimer);
+    // Sin watchdog agresivo — solo marcar como caído tras 15s de silencio total
     _wdTimer=setTimeout(()=>{
-      if(!VOZ.on) return;
-      // En lugar de reiniciar (causa permiso), avisamos al usuario
-      setStatus('⚠️ Mic pausado — presiona ⏸ para reanudar');
-      setDot(false);
-      VOZ.on=false;
-      updHdr();
-    },12000); // 12s sin actividad = mic congelado
+      if(VOZ.on){ setDot(false); setStatus('🎤 Toca HABLAR para continuar'); }
+    },15000);
   }
 
   rec.onstart=()=>{
+    VOZ._running=true;
     setDot(true);
-    setStatus('Escuchando...');
+    setStatus('🔴 Escuchando — di el número');
     resetWatchdog();
+    // Mostrar botón HABLAR activo
+    const hb=document.getElementById('voz-hablar');
+    if(hb){hb.style.background='var(--red)';hb.textContent='🔴 Escuchando...';}
   };
 
   rec.onend=()=>{
     clearTimeout(_wdTimer);
-    if(VOZ.on){
-      // Reinicio INMEDIATO (0ms) para no perder audio entre fragmentos
-      // Si falla, intentar a los 50ms — nunca más de eso
-      let restarted=false;
-      try{ rec.start(); restarted=true; resetWatchdog(); }catch(e){}
-      if(!restarted){
-        setTimeout(()=>{
-          if(VOZ.on) try{ rec.start(); resetWatchdog(); }catch(e){
-            // Si sigue fallando, avisar al usuario
-            setStatus('⚠️ Mic pausado — presiona ⏸ para reanudar');
-            VOZ.on=false; setDot(false); updHdr();
-          }
-        },50);
-      }
+    VOZ._running=false;
+    setDot(false);
+    // Restaurar botón HABLAR
+    const hb=document.getElementById('voz-hablar');
+    if(hb){hb.style.background='var(--accent)';hb.textContent='🎤 HABLAR';}
+    if(VOZ.on && VOZ.seqMode){
+      // En modo secuencial: volver a escuchar automáticamente tras 300ms
+      setTimeout(()=>{ if(VOZ.on&&VOZ.seqMode) hablar(); },300);
     } else {
-      setDot(false);
+      setStatus('🎤 Toca HABLAR para dictar');
     }
   };
 
   rec.onerror=e=>{
-    if(e.error==='no-speech'){ resetWatchdog(); return; }
-    if(e.error==='aborted') return; // reinicio normal — ignorar
-    if(e.error==='not-allowed'){
-      setStatus('\u26a0\ufe0f Permiso denegado \u2014 activa el mic en Chrome');
-      VOZ.on=false; setDot(false); clearTimeout(_wdTimer); return;
+    VOZ._running=false;
+    if(e.error==='no-speech'){
+      // Sin voz detectada — reintentar si estamos en modo secuencial
+      setStatus('Sin voz — toca HABLAR para intentar de nuevo');
+      return;
     }
-    // Otros errores: ignorar, onend se encargará del reinicio
+    if(e.error==='aborted') return;
+    if(e.error==='not-allowed'){
+      setStatus('\u26a0\ufe0f Permiso denegado — activa el mic en Ajustes de Chrome');
+      VOZ.on=false; setDot(false); updHdr(); return;
+    }
+    if(e.error==='network'){
+      setStatus('\u26a0\ufe0f Sin internet — el dictado requiere conexión');
+    }
   };
 
   rec.onresult=e=>{
@@ -1681,6 +1691,14 @@ function buildFields(){
 }
 
 // ── ARRANCAR MICRÓFONO — solo se llama UNA VEZ ──
+function hablar(){
+  if(!VOZ.supported){alert('Usa Google Chrome para dictado por voz.');return;}
+  if(VOZ._running) return;
+  try{VOZ.rec.start();}catch(e){
+    setTimeout(()=>{try{VOZ.rec.start();}catch(e2){}},200);
+  }
+}
+
 function startMic(){
   if(!VOZ.supported){alert('Usa Google Chrome para dictado por voz.');return;}
   if(VOZ.on) return;
@@ -1816,20 +1834,21 @@ setTimeout(addMicBtns,600);
     </div>
     <div id="voz-preview" style="font-size:14px;color:var(--yellow);font-style:italic;text-align:right;min-width:60px;max-width:200px"></div>
   </div>
+  <!-- Botón HABLAR — principal, grande, fácil de tocar en Android -->
+  <button id="voz-hablar" onclick="hablar()" style="width:100%;padding:18px;border-radius:var(--r);border:none;background:var(--accent);color:#fff;font-size:20px;font-weight:900;cursor:pointer;touch-action:manipulation;min-height:64px;letter-spacing:2px;margin-bottom:4px">🎤 HABLAR</button>
+
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <button id="voz-seq-btn" onclick="VOZ.seqMode?stopVoice():startSeq()" style="flex:1;min-width:140px;padding:14px 16px;border-radius:var(--r);border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:700;cursor:pointer;transition:.15s;min-height:52px;touch-action:manipulation">▶ Dictado secuencial</button>
-    <button onclick="prevF()" style="padding:12px 16px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;cursor:pointer" title="Campo anterior">◀</button>
-    <button onclick="nextF()" style="padding:12px 16px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;cursor:pointer" title="Saltar campo">▶</button>
-    <button onclick="VOZ.on?stopVoice():startMic()" style="padding:12px 14px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-size:13px;cursor:pointer" title="Pausar micrófono">⏸</button>
-    <button onclick="$('voz-panel').style.display='none';stopVoice();" style="padding:12px 14px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-size:13px;cursor:pointer">✕</button>
+    <button id="voz-seq-btn" onclick="VOZ.seqMode?stopVoice():startSeq()" style="flex:1;padding:12px 8px;border-radius:var(--r);border:none;background:#1a3a5f;color:#93c5fd;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation;min-height:48px">▶ Secuencial</button>
+    <button onclick="prevF()" style="flex:1;padding:12px 8px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;cursor:pointer;min-height:48px">◀ Ant.</button>
+    <button onclick="nextF()" style="flex:1;padding:12px 8px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:14px;cursor:pointer;min-height:48px">Sig. ▶</button>
+    <button onclick="$('voz-panel').style.display='none';stopVoice();" style="padding:12px 14px;border-radius:var(--r);border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-size:14px;cursor:pointer;min-height:48px">✕</button>
   </div>
-  <div style="font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:8px;line-height:2">
-    <strong style="color:var(--text)">Comandos de voz:</strong>&nbsp;
+  <div style="font-size:11px;color:var(--muted);border-top:1px solid var(--border);padding-top:8px;line-height:1.9">
+    <strong style="color:var(--yellow)">Cómo usar:</strong> Toca <strong>🎤 HABLAR</strong>, di el número, suelta. Repite para cada campo.<br>
+    <strong style="color:var(--text)">Comandos:</strong>&nbsp;
     <span style="color:var(--accent)">"siguiente"</span> saltar &nbsp;·&nbsp;
-    <span style="color:var(--accent)">"anterior"</span> volver &nbsp;·&nbsp;
     <span style="color:var(--accent)">"borrar"</span> poner cero &nbsp;·&nbsp;
-    <span style="color:var(--accent)">"parar"</span> detener &nbsp;·&nbsp;
-    Números: <span style="color:var(--yellow)">"quinientos"</span>, <span style="color:var(--yellow)">"mil doscientos"</span>, <span style="color:var(--yellow)">"treinta y seis"</span>
+    <span style="color:var(--accent)">"parar"</span> detener
   </div>
 </div>
 
