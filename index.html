@@ -12,43 +12,27 @@
 <meta name="description" content="Sistema de control de arqueo de bóveda para EPQ">
 <link id="pwa-manifest" rel="manifest">
 <script>
-// ── PWA: Registrar Service Worker + Manifest inline ──
+// ── PWA: Manifest inline (sin Service Worker — no compatible con blob) ──
 (function(){
-  // Manifest inline como blob
-  const manifest = {"name": "Arqueo de Bóveda — EPQ", "short_name": "Arqueo Bóveda", "description": "Sistema de control de arqueo de bóveda para EPQ", "start_url": ".", "display": "standalone", "background_color": "#0f1117", "theme_color": "#14b8a6", "orientation": "portrait-primary", "icons": [{"src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='24' fill='%230f1117'/%3E%3Crect x='16' y='72' width='160' height='100' rx='12' fill='%2314b8a6'/%3E%3Crect x='40' y='88' width='48' height='16' rx='4' fill='white'/%3E%3Crect x='104' y='88' width='48' height='16' rx='4' fill='white'/%3E%3Crect x='60' y='40' width='72' height='44' rx='8' fill='%230d9488'/%3E%3Crect x='76' y='52' width='40' height='6' rx='3' fill='white'/%3E%3Crect x='76' y='64' width='28' height='6' rx='3' fill='white'/%3E%3C/svg%3E", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any maskable"}, {"src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='64' fill='%230f1117'/%3E%3Crect x='40' y='190' width='432' height='270' rx='32' fill='%2314b8a6'/%3E%3Crect x='100' y='230' width='130' height='44' rx='10' fill='white'/%3E%3Crect x='280' y='230' width='130' height='44' rx='10' fill='white'/%3E%3Crect x='156' y='100' width='200' height='120' rx='20' fill='%230d9488'/%3E%3Crect x='196' y='128' width='120' height='18' rx='8' fill='white'/%3E%3Crect x='196' y='158' width='80' height='18' rx='8' fill='white'/%3E%3C/svg%3E", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any maskable"}], "categories": ["finance", "productivity"], "lang": "es", "dir": "ltr"};
-  const mBlob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
-  const mUrl = URL.createObjectURL(mBlob);
-  document.getElementById('pwa-manifest').href = mUrl;
-
-  // Service Worker inline como blob
-  if('serviceWorker' in navigator){
-    const swCode = `
-const CACHE='arqueo-boveda-v1';
-const ASSETS=['/'];
-self.addEventListener('install',e=>{
-  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)));
-  self.skipWaiting();
-});
-self.addEventListener('activate',e=>{
-  e.waitUntil(caches.keys().then(keys=>Promise.all(
-    keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))
-  )));
-  self.clients.claim();
-});
-self.addEventListener('fetch',e=>{
-  e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).catch(()=>
-    new Response('<h2>Sin conexión</h2>',{headers:{'Content-Type':'text/html'}})
-  )));
-});
-`;
-    const swBlob = new Blob([swCode], {type:'application/javascript'});
-    const swUrl = URL.createObjectURL(swBlob);
-    navigator.serviceWorker.register(swUrl, {scope:'./'})
-      .then(()=>console.log('SW registrado OK'))
-      .catch(e=>console.log('SW error:',e));
-  }
-})();
-</script>
+  const manifest = {
+    "name": "Arqueo de Bóveda — EPQ",
+    "short_name": "Arqueo Bóveda",
+    "description": "Sistema de control de arqueo de bóveda para EPQ",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#0f1117",
+    "theme_color": "#14b8a6",
+    "orientation": "portrait-primary",
+    "icons": [
+      {"src":"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='24' fill='%230f1117'/%3E%3Crect x='16' y='72' width='160' height='100' rx='12' fill='%2314b8a6'/%3E%3Crect x='40' y='88' width='48' height='16' rx='4' fill='white'/%3E%3Crect x='104' y='88' width='48' height='16' rx='4' fill='white'/%3E%3Crect x='60' y='40' width='72' height='44' rx='8' fill='%230d9488'/%3E%3C/svg%3E","sizes":"192x192","type":"image/svg+xml","purpose":"any maskable"},
+      {"src":"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='64' fill='%230f1117'/%3E%3Crect x='40' y='190' width='432' height='270' rx='32' fill='%2314b8a6'/%3E%3Crect x='100' y='230' width='130' height='44' rx='10' fill='white'/%3E%3Crect x='280' y='230' width='130' height='44' rx='10' fill='white'/%3E%3C/svg%3E","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}
+    ],
+    "categories": ["finance","productivity"],
+    "lang": "es"
+  };
+  const mBlob = new Blob([JSON.stringify(manifest)],{type:'application/json'});
+  document.getElementById('pwa-manifest').href = URL.createObjectURL(mBlob);
+})();</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -199,6 +183,11 @@ function installPWA(){
     <div style="font-size:11px;color:var(--muted)">Sistema de Control — Cambio de Turno</div>
   </div>
   <div class="hdr-meta">
+    <select id="corredor-sel" onchange="cambiarCorredor(this.value)" style="background:#1a3a5f;border:1px solid var(--accent);color:var(--accent);padding:5px 10px;border-radius:var(--r);font-size:12px;font-weight:700;min-height:36px">
+      <option value="TROLEBUS">🚎 Trolebús</option>
+      <option value="SUR_ORIENTAL">🚌 Sur Oriental</option>
+      <option value="SUR_OCCIDENTAL">🚐 Sur Occidental</option>
+    </select>
     <span id="online-ind" title="Estado conexión" style="font-size:16px;cursor:default">🟢</span>
     <button onclick="resetAll()" style="padding:5px 14px;border-radius:var(--r);border:1px solid var(--red);background:rgba(239,68,68,.12);color:#fca5a5;font-size:12px;font-weight:700;cursor:pointer;transition:.15s" title="Encerar todos los campos" onmouseenter="this.style.background='rgba(239,68,68,.25)'" onmouseleave="this.style.background='rgba(239,68,68,.12)'">⬜ Encerar todo</button>
     <input type="date" id="fecha">
@@ -503,6 +492,55 @@ const BILLETES = [
   {l:'$100',f:0,s:0},{l:'$50',f:0,s:0},{l:'$20',f:0,s:0},
   {l:'$10',f:0,s:0},{l:'$5',f:0,s:0},{l:'$1',f:0,s:0}
 ];
+// ═══════════════════════════════════════════════════════════
+//  DATOS POR CORREDOR
+// ═══════════════════════════════════════════════════════════
+const CORRIDORS = {
+  TROLEBUS:{
+    nombre:'TROLEBÚS', label:'🚎 Trolebús', tieneAlm:true, ef:66,
+    paradas:['Quitumbe 1','Quitumbe 2','Quitumbe 3','Cóndor Ñan','Amaru Ñan','Morán Valverde 1','Morán Valverde 2','Turubamba','Quimiag','Mayorista','Solanda','Ajaví','Internacional','Quito Sur','España 1','España 2','Calzado','El Recreo 1','El Recreo 2','El Recreo 3','Villa Flora','Villa Flora','Chimbacalle','Chimbacalle','Colina','Jefferson Pérez','La Recoleta','La Recoleta','Cumandá','Cumandá','Santo Domingo','Santo Domingo','Plaza Marín','Plaza Chica','Plaza del Teatro'],
+    alim:['El Recreo Alimentadores','Morán Valverde Alimentadores','Quitumbe Alimentadores','Forestal Alimentadores'],
+    bolStock:[56900,43000,1900,1361570,35596,17028],
+    hoyPar:[[500,563,97,66],[985,498,91,66],[989,494,99,66],[1008,568,85,66],[1000,818,140,66],[839,500,77,66],[500,200,56,66],[984,700,82,66],[636,467,36,66],[533,500,76,66],[712,445,58,66],[600,499,78,66],[548,175,84,66],[525,432,71,66],[738,539,61,66],[200,200,100,66],[821,965,126,66],[500,500,100,66],[500,499,99,66],[500,498,100,66],[1065,791,71,66],[834,741,154,66],[400,400,82,66],[598,527,56,66],[375,190,26,66],[348,148,23,66],[938,393,93,66],[912,262,111,66],[226,259,46,66],[339,422,44,66],[1000,700,54,66],[600,1420,128,66],[500,497,157,66],[747,500,163,66],[600,800,100,66]],
+    hoyAlm:[[14000,9000,800],[3100,2100,500],[9800,6000,800],[3100,2300,300]],
+    manPar:[[486,500,66],[613,936,78],[858,400,98],[500,404,117],[965,776,140],[926,500,98],[492,400,54],[1656,894,96],[1583,524,89],[567,516,45],[625,241,119],[622,394,79],[563,414,46],[609,471,145],[855,363,77],[200,200,100],[1131,470,161],[1000,500,89],[858,500,95],[500,340,97],[1140,570,73],[1072,950,141],[653,319,121],[489,465,66],[295,175,23],[349,137,14],[491,287,86],[294,386,51],[581,300,110],[468,240,101],[481,989,87],[4961,1129,159],[950,600,100],[1000,807,100],[937,699,107]],
+    manAlm:[[9700,6200,500],[2000,1900,300],[6700,3400,500],[3500,2500,300]]
+  },
+  SUR_ORIENTAL:{
+    nombre:'SUR-ORIENTAL', label:'🚌 Sur Oriental', tieneAlm:true, ef:66,
+    paradas:['Sixto 2','Sixto 1','Santo Tomás','Caupicho','Beaterio','Bretania','Guayanañan','Quitumbe Oriental','Quillallacta','Otoya','Estación Cápuli 2','Estación Cápuli 1','Pacarillacta','Puente de Guajalo','San Cristóbal','Ayapamba','El Comercio','San Bartolo','Epiclachima','Pujilí','Estadio Chimbacalle','Teatro México','Col. Montúfar','Playón Marín 2','Playón Marín 1'],
+    alim:['Sixto Alimentadores','Quitumbe Oriental Alimentadores','Cápuli Alimentadores','Puente de Guajalo Alimentadores','Playón Alimentadores'],
+    bolStock:[0,0,0,0,0,0],
+    hoyPar:Array(25).fill(0).map(()=>[0,0,0,66]),
+    hoyAlm:Array(5).fill(0).map(()=>[0,0,0]),
+    manPar:Array(25).fill(0).map(()=>[0,0,0]),
+    manAlm:Array(5).fill(0).map(()=>[0,0,0])
+  },
+  SUR_OCCIDENTAL:{
+    nombre:'SUR-OCCIDENTAL', label:'🚐 Sur Occidental', tieneAlm:false, ef:66,
+    paradas:['Parada 1','Parada 2','Parada 3','Parada 4','Parada 5','Parada 6','Parada 7','Parada 8','Parada 9','Parada 10','Parada 11','Parada 12','Parada 13','Parada 14','Parada 15','Parada 16','Parada 17','Parada 18','Parada 19','Parada 20'],
+    alim:[],
+    bolStock:[0,0,0,0,0,0],
+    hoyPar:Array(20).fill(0).map(()=>[0,0,0,66]),
+    hoyAlm:[],
+    manPar:Array(20).fill(0).map(()=>[0,0,0]),
+    manAlm:[]
+  }
+};
+
+// Corredor activo (inicia con Trolebús)
+let _COR_KEY = 'TROLEBUS';
+let COR = CORRIDORS[_COR_KEY];
+
+// Variables dinámicas — se actualizan al cambiar de corredor
+let PAR35 = COR.paradas;
+let ALM4  = COR.alim;
+let HOY_PAR = COR.hoyPar.map(r=>[...r]);
+let HOY_ALM = COR.hoyAlm.map(r=>[...r]);
+let MAN_PAR = COR.manPar.map(r=>[...r]);
+let MAN_ALM = COR.manAlm.map(r=>[...r]);
+let BOL_STOCK_COR = [...COR.bolStock];
+
 const BOLETOS = [
   {l:'B-ALM $0.35',tag:'ta',tipo:'alm',den:35},
   {l:'B-ALM $0.17',tag:'ta',tipo:'alm',den:17},
@@ -510,47 +548,6 @@ const BOLETOS = [
   {l:'B-PAR $0.35',tag:'tp',tipo:'par',den:35},
   {l:'B-PAR $0.17',tag:'tp',tipo:'par',den:17},
   {l:'B-PAR $0.10',tag:'tp',tipo:'par',den:10}
-];
-const BOL_STOCK = [56900,43000,1900,1361570,35596,17028];
-
-const PAR35 = [
-  'Quitumbe 1','Quitumbe 2','Quitumbe 3','Cóndor Ñan','Amaru Ñan',
-  'Morán Valverde 1','Morán Valverde 2','Turubamba','Quimiag','Mayorista',
-  'Solanda','Ajaví','Internacional','Quito Sur','España 1',
-  'España 2','Calzado','El Recreo 1','El Recreo 2','El Recreo 3',
-  'Villa Flora','Villa Flora','Chimbacalle','Chimbacalle','Colina',
-  'Jefferson Pérez','La Recoleta','La Recoleta','Cumandá','Cumandá',
-  'Santo Domingo','Santo Domingo','Plaza Marín','Plaza Chica','Plaza del Teatro'
-];
-const ALM4 = ['El Recreo Alimentadores','Morán Valverde Alimentadores','Quitumbe Alimentadores','Forestal Alimentadores'];
-
-// HOY: paradas [b35,b17,b10,ef]
-const HOY_PAR = [
-  [500,563,97,66],[985,498,91,66],[989,494,99,66],[1008,568,85,66],[1000,818,140,66],
-  [839,500,77,66],[500,200,56,66],[984,700,82,66],[636,467,36,66],[533,500,76,66],
-  [712,445,58,66],[600,499,78,66],[548,175,84,66],[525,432,71,66],[738,539,61,66],
-  [200,200,100,66],[821,965,126,66],[500,500,100,66],[500,499,99,66],[500,498,100,66],
-  [1065,791,71,66],[834,741,154,66],[400,400,82,66],[598,527,56,66],[375,190,26,66],
-  [348,148,23,66],[938,393,93,66],[912,262,111,66],[226,259,46,66],[339,422,44,66],
-  [1000,700,54,66],[600,1420,128,66],[500,497,157,66],[747,500,163,66],[600,800,100,66]
-];
-// HOY: alimentadoras [b35,b17,b10]
-const HOY_ALM = [
-  [14000,9000,800],[3100,2100,500],[9800,6000,800],[3100,2300,300]
-];
-// MAÑANA: paradas [b35,b17,b10]
-const MAN_PAR = [
-  [486,500,66],[613,936,78],[858,400,98],[500,404,117],[965,776,140],
-  [926,500,98],[492,400,54],[1656,894,96],[1583,524,89],[567,516,45],
-  [625,241,119],[622,394,79],[563,414,46],[609,471,145],[855,363,77],
-  [200,200,100],[1131,470,161],[1000,500,89],[858,500,95],[500,340,97],
-  [1140,570,73],[1072,950,141],[653,319,121],[489,465,66],[295,175,23],
-  [349,137,14],[491,287,86],[294,386,51],[581,300,110],[468,240,101],
-  [481,989,87],[4961,1129,159],[950,600,100],[1000,807,100],[937,699,107]
-];
-// MAÑANA: alimentadoras [b35,b17,b10]
-const MAN_ALM = [
-  [9700,6200,500],[2000,1900,300],[6700,3400,500],[3500,2500,300]
 ];
 
 // ═══ UTILIDADES ═══
@@ -682,19 +679,22 @@ function calcDin(){
 }
 
 // ═══ BUILD BOLETOS ═══
-(function(){
+function buildBoletos(){
+  const tb=$('tb-bol'); if(!tb) return; tb.innerHTML='';
   BOLETOS.forEach((b,i)=>{
     const tr=document.createElement('tr');
     tr.innerHTML=`<td><span class="tag ${b.tag}">${b.tipo.toUpperCase()}</span> ${b.l}</td>
-      <td><input type="number" id="bsk${i}" min="0" value="${BOL_STOCK[i]}" onchange="calcBol()"></td>
+      <td><input type="number" id="bsk${i}" min="0" value="${BOL_STOCK_COR[i]||0}" onchange="calcBol()"></td>
       <td class="auto" id="beh${i}">0</td>
       <td class="auto" id="bpm${i}">0</td>
       <td class="red-val" id="bqd${i}">0</td>
       <td id="bst${i}">—</td>`;
-    $('tb-bol').appendChild(tr);
+    tb.appendChild(tr);
   });
+  setTimeout(addMicBtns,100);
   calcBol();
-})();
+}
+buildBoletos();
 
 function getHoyTotals(){
   // PAR35: columnas 0=b35, 1=b17, 2=b10
@@ -898,6 +898,7 @@ function calcMan(){
 
 // ═══ REPORTE ═══
 function buildRpt(){
+  calcDin();calcHoy();calcMan();calcBol();
   const fecha=$('fecha').value;
   const turno=$('turno').options[$('turno').value-1].text;
   const obs=$('obs').value||'Sin novedades.';
@@ -962,7 +963,7 @@ function buildRpt(){
           <tr><td>Efectivo inicial (35 paradas)</td><td class="r auto">${$('hpef-t').textContent}</td></tr>
           <tr><td>Total planillas hoy</td><td class="r auto">${$('htotsub').textContent}</td></tr>
           <tr><td>Total planillas mañana</td><td class="r auto">${$('mtotsub').textContent}</td></tr>
-          <tr class="ft"><td>Paradas / Alimentadoras</td><td class="r">35 / 4</td></tr>
+          <tr class="ft"><td>Paradas / Alimentadoras</td><td class="r">${PAR35.length} / ${ALM4.length}</td></tr>
         </table>
       </div>
     </div>
@@ -991,7 +992,7 @@ function buildRpt(){
     </div>
 
     <div class="card">
-      <div class="ctitle">Planillas Hoy — 4 Alimentadoras</div>
+      <div class="ctitle">Planillas Hoy — ${ALM4.length} Alimentadoras</div>
       <div class="tw">
         <table>
           <thead><tr><th>#</th><th>Alimentadora</th><th class="r">$0.35</th><th class="r">$0.17</th><th class="r">$0.10</th><th class="r">Subtotal</th></tr></thead>
@@ -1018,6 +1019,7 @@ function buildRpt(){
 //  INFORME EPQ — C.TROLE
 // ═══════════════════════════════════════════════════════════
 function buildTrole(){
+  calcDin();calcHoy();calcMan();calcBol();
   const fecha=$('fecha').value||new Date().toISOString().split('T')[0];
   const turno=$('turno').options[$('turno').value-1]?.text||'1ERO';
   const turnoLabel=turno.includes('1')?'1ERO':turno.includes('2')?'2DO':'3ERO';
@@ -1081,17 +1083,17 @@ function buildTrole(){
   });
   dinRows+=`<tr class="total-row"><td colspan="2">TOTAL</td><td class="r">${N(totE,2)}</td><td class="r">-</td><td class="r">${N(totF,2)}</td><td class="r">${N(totT,2)}</td></tr>`;
 
+  // Boletos: alimentadoras solo si el corredor las tiene
   const bolData=[
-    ['B. ALIMENTADOR 0,35', fisAlm35+alm35, alm35, fisAlm35],
-    ['B. ALIMENTADOR 0,17', fisAlm17+alm17, alm17, fisAlm17],
-    ['B. ALIMENTADOR 0,10', fisAlm10+alm10, alm10, fisAlm10],
-    ['B.PARADA  $0,35',     fisPar35+par35, par35, fisPar35],
-    ['B.PARADA $0,17',      fisPar17+par17, par17, fisPar17],
-    ['B.PARADA $0,10',      fisPar10+par10, par10, fisPar10],
-    ['FICHAS 0,12',          0,0,0],
-    ['B.TROLE TOUR 0,50',    0,0,0],
-    ['B.TROLE TOUR 1,00',    0,0,0],
-    ['B.TROLE TOUR 2,00',    0,0,0],
+    ...(COR.tieneAlm?[
+      ['B. ALIMENTADOR 0,35', fisAlm35+alm35, alm35, fisAlm35],
+      ['B. ALIMENTADOR 0,17', fisAlm17+alm17, alm17, fisAlm17],
+      ['B. ALIMENTADOR 0,10', fisAlm10+alm10, alm10, fisAlm10],
+    ]:[]),
+    ['B.PARADA  $0,35', fisPar35+par35, par35, fisPar35],
+    ['B.PARADA $0,17',  fisPar17+par17, par17, fisPar17],
+    ['B.PARADA $0,10',  fisPar10+par10, par10, fisPar10],
+    ['FICHAS 0,12',     0,0,0],
   ];
   let bolRows='';
   bolData.forEach(([esp,kar,ent,fis])=>{
@@ -1107,7 +1109,7 @@ function buildTrole(){
   <table style="margin-bottom:6px;font-size:10px;border:none">
     <tr style="border:none">
       <td style="border:none;width:80px" class="lbl">CORREDOR:</td>
-      <td style="border:none;width:120px">TROLEBUS</td>
+      <td style="border:none;width:120px">${COR.nombre}</td>
       <td style="border:none;width:90px" class="lbl">HORA INICIO:</td>
       <td style="border:none;width:80px"></td>
       <td style="border:none" class="lbl">SUPERVISORES DE CAJA:</td>
@@ -1181,6 +1183,87 @@ function printTrole(){
   w.document.write('<html><head><title>Informe C.TROLE</title><style>body{font-family:Arial,sans-serif;margin:20px}@media print{body{margin:10px}}</style></head><body>'+content+'</body></html>');
   w.document.close();
   w.print();
+}
+
+
+// Exposed builders for corridor switching
+function buildHoyPar(){
+  const tb=$('tb-hpar'); if(!tb) return; tb.innerHTML='';
+  PAR35.forEach((p,i)=>{
+    const d=HOY_PAR[i]||[0,0,0,66];
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="color:var(--muted)">${i+1}</td><td>${p}</td>
+      <td><input type="number" id="hp35${i}" min="0" value="${d[0]}" onchange="calcHoy()"></td>
+      <td><input type="number" id="hp17${i}" min="0" value="${d[1]}" onchange="calcHoy()"></td>
+      <td><input type="number" id="hp10${i}" min="0" value="${d[2]}" onchange="calcHoy()"></td>
+      <td><input type="number" id="hef${i}" min="0" value="${d[3]||COR.ef}" step="0.01" onchange="calcHoy()" style="border-color:var(--accent)"></td>
+      <td class="auto" id="hpsub${i}">0.00</td>`;
+    tb.appendChild(tr);
+  });
+  setTimeout(addMicBtns,100);
+}
+function buildHoyAlm(){
+  const tb=$('tb-halm'); if(!tb) return; tb.innerHTML='';
+  ALM4.forEach((a,i)=>{
+    const d=HOY_ALM[i]||[0,0,0];
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="color:var(--muted)">${i+1}</td><td>${a}</td>
+      <td><input type="number" id="ha35${i}" min="0" value="${d[0]}" onchange="calcHoy()"></td>
+      <td><input type="number" id="ha17${i}" min="0" value="${d[1]}" onchange="calcHoy()"></td>
+      <td><input type="number" id="ha10${i}" min="0" value="${d[2]}" onchange="calcHoy()"></td>
+      <td class="auto" id="hasub${i}">0.00</td>`;
+    tb.appendChild(tr);
+  });
+  setTimeout(addMicBtns,100);
+}
+function buildManPar(){
+  const tb=$('tb-mpar'); if(!tb) return; tb.innerHTML='';
+  PAR35.forEach((p,i)=>{
+    const d=MAN_PAR[i]||[0,0,0];
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="color:var(--muted)">${i+1}</td><td>${p}</td>
+      <td><input type="number" id="mp35${i}" min="0" value="${d[0]}" onchange="calcMan()"></td>
+      <td><input type="number" id="mp17${i}" min="0" value="${d[1]}" onchange="calcMan()"></td>
+      <td><input type="number" id="mp10${i}" min="0" value="${d[2]}" onchange="calcMan()"></td>
+      <td class="auto" id="mpsub${i}">0.00</td>`;
+    tb.appendChild(tr);
+  });
+  setTimeout(addMicBtns,100);
+}
+function buildManAlm(){
+  const tb=$('tb-malm'); if(!tb) return; tb.innerHTML='';
+  ALM4.forEach((a,i)=>{
+    const d=MAN_ALM[i]||[0,0,0];
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style="color:var(--muted)">${i+1}</td><td>${a}</td>
+      <td><input type="number" id="ma35${i}" min="0" value="${d[0]}" onchange="calcMan()"></td>
+      <td><input type="number" id="ma17${i}" min="0" value="${d[1]}" onchange="calcMan()"></td>
+      <td><input type="number" id="ma10${i}" min="0" value="${d[2]}" onchange="calcMan()"></td>
+      <td class="auto" id="masub${i}">0.00</td>`;
+    tb.appendChild(tr);
+  });
+  setTimeout(addMicBtns,100);
+}
+
+// ═══ CAMBIAR CORREDOR ═══
+function cambiarCorredor(key){
+  _COR_KEY=key;
+  COR=CORRIDORS[key];
+  PAR35=[...COR.paradas];
+  ALM4=[...COR.alim];
+  HOY_PAR=COR.hoyPar.map(r=>[...r]);
+  HOY_ALM=COR.hoyAlm.map(r=>[...r]);
+  MAN_PAR=COR.manPar.map(r=>[...r]);
+  MAN_ALM=COR.manAlm.map(r=>[...r]);
+  BOL_STOCK_COR=[...COR.bolStock];
+  // Reconstruir todas las tablas
+  buildBoletos();
+  buildHoyPar(); buildHoyAlm(); buildManPar(); buildManAlm();
+  // Mostrar/ocultar sección alimentadoras
+  ['alm-hoy-sec','alm-man-sec'].forEach(id=>{const e=$(id);if(e)e.style.display=COR.tieneAlm?'':'none';});
+  calcDin();calcHoy();calcMan();calcBol();
+  try{localStorage.setItem('corredor_activo',key);}catch(e){}
+  setStatus&&setStatus('Corredor: '+COR.nombre);
 }
 
 
@@ -1684,6 +1767,16 @@ function addMicBtns(){
     // inputmode=numeric → teclado numérico en Android sin zoom
     inp.setAttribute('inputmode','numeric');
     inp.setAttribute('pattern','[0-9]*');
+    // Borrar el cero al enfocar — no hay que borrarlo manualmente
+    inp.addEventListener('focus',function(){
+      if(this.value==='0'||this.value==='0.00'||+this.value===0) this.value='';
+    });
+    // Si se va sin ingresar nada, restaurar el cero
+    inp.addEventListener('blur',function(){
+      if(this.value===''||this.value===null) {this.value=0; this.dispatchEvent(new Event('change'));}
+    });
+    // Seleccionar todo el texto al enfocar (útil para reemplazar valores no-cero)
+    inp.addEventListener('click',function(){this.select();});
     const wrap=document.createElement('div');
     wrap.style.cssText='display:flex;align-items:center;gap:4px';
     inp.parentNode.insertBefore(wrap,inp);
@@ -1831,6 +1924,14 @@ window.addEventListener('offline',updOnline);
 
 // Init al cargar
 document.addEventListener('DOMContentLoaded',()=>{
+  // Restaurar corredor guardado
+  try{
+    const savedCor=localStorage.getItem('corredor_activo');
+    if(savedCor&&CORRIDORS[savedCor]){
+      document.getElementById('corredor-sel').value=savedCor;
+      cambiarCorredor(savedCor);
+    }
+  }catch(e){}
   showTab(0);
   updOnline();
   restoreData();
