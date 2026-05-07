@@ -183,7 +183,7 @@ function installPWA(){
     <div style="font-size:11px;color:var(--muted)">Sistema de Control — Cambio de Turno</div>
   </div>
   <div class="hdr-meta">
-    <select id="corredor-sel" onchange="cambiarCorredor(this.value)" style="background:#1a3a5f;border:1px solid var(--accent);color:var(--accent);padding:5px 10px;border-radius:var(--r);font-size:12px;font-weight:700;min-height:36px">
+    <select id="corredor-sel" style="background:#1a3a5f;border:1px solid var(--accent);color:var(--accent);padding:5px 10px;border-radius:var(--r);font-size:12px;font-weight:700;min-height:36px">
       <option value="TROLEBUS">🚎 Trolebús</option>
       <option value="SUR_ORIENTAL">🚌 Sur Oriental</option>
       <option value="SUR_OCCIDENTAL">🚐 Sur Occidental</option>
@@ -380,6 +380,7 @@ function installPWA(){
       </table>
     </div>
 
+    <div id="alm-hoy-sec">
     <div class="sep" id="sep-hoy-alm" style="margin-top:20px">Alimentadoras (solo boletos)</div>
     <div class="tw">
       <table>
@@ -399,6 +400,7 @@ function installPWA(){
           </tr>
         </tfoot>
       </table>
+    </div>
     </div>
 
     <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
@@ -435,6 +437,7 @@ function installPWA(){
       </table>
     </div>
 
+    <div id="alm-man-sec">
     <div class="sep" id="sep-man-alm" style="margin-top:20px">Alimentadoras</div>
     <div class="tw">
       <table>
@@ -450,6 +453,7 @@ function installPWA(){
           </tr>
         </tfoot>
       </table>
+    </div>
     </div>
 
     <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
@@ -518,12 +522,15 @@ const CORRIDORS = {
   },
   SUR_OCCIDENTAL:{
     nombre:'SUR-OCCIDENTAL', label:'🚐 Sur Occidental', tieneAlm:false, ef:66,
-    paradas:['Parada 1','Parada 2','Parada 3','Parada 4','Parada 5','Parada 6','Parada 7','Parada 8','Parada 9','Parada 10','Parada 11','Parada 12','Parada 13','Parada 14','Parada 15','Parada 16','Parada 17','Parada 18','Parada 19','Parada 20'],
+    paradas:['HDA. EL CARMEN','FUNDEPORTE','CHILLOGALLO','STA. RITA','STA. BARBARA',
+      'MENA 2','BILOXI','LA SANTIAGO','ALONSO DE ANGULO','EL PINTADO',
+      'LA MAGDALENA','LA MASCOTA','DOS PUENTES S-N','DOS PUENTES N-S','SAN DIEGO',
+      'SAN ROQUE','EL TEJAR','IESS','U. CENTRAL','SEMINARIO','SEMINARIO 2'],
     alim:[],
     bolStock:[0,0,0,0,0,0],
-    hoyPar:Array(20).fill(0).map(()=>[0,0,0,66]),
+    hoyPar:Array(21).fill(0).map(()=>[0,0,0,66]),
     hoyAlm:[],
-    manPar:Array(20).fill(0).map(()=>[0,0,0]),
+    manPar:Array(21).fill(0).map(()=>[0,0,0]),
     manAlm:[]
   }
 };
@@ -682,6 +689,7 @@ function calcDin(){
 function buildBoletos(){
   const tb=$('tb-bol'); if(!tb) return; tb.innerHTML='';
   BOLETOS.forEach((b,i)=>{
+    if(!COR.tieneAlm && b.tipo==='alm') return; // ocultar ALM en CSW
     const tr=document.createElement('tr');
     tr.innerHTML=`<td><span class="tag ${b.tag}">${b.tipo.toUpperCase()}</span> ${b.l}</td>
       <td><input type="number" id="bsk${i}" min="0" value="${BOL_STOCK_COR[i]||0}" onchange="calcBol()"></td>
@@ -768,40 +776,13 @@ function calcBol(){
     <div class="stat"><div class="sl">Tipos con déficit</div><div class="sv ${deficit>0?'r':'g'}">${deficit}</div></div>`;
 }
 
-// ═══ BUILD PLANILLAS HOY ═══
-(function(){
-  // 35 paradas
-  PAR35.forEach((p,i)=>{
-    const d=HOY_PAR[i];
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td style="color:var(--muted)">${i+1}</td><td>${p}</td>
-      <td><input type="number" id="hp35${i}" min="0" value="${d[0]}" onchange="calcHoy()"></td>
-      <td><input type="number" id="hp17${i}" min="0" value="${d[1]}" onchange="calcHoy()"></td>
-      <td><input type="number" id="hp10${i}" min="0" value="${d[2]}" onchange="calcHoy()"></td>
-      <td><input type="number" id="hef${i}" min="0" value="${d[3]}" step="0.01" onchange="calcHoy()" style="border-color:var(--accent)"></td>
-      <td class="auto" id="hpsub${i}">0.00</td>`;
-    $('tb-hpar').appendChild(tr);
-  });
-  // 4 alimentadoras
-  ALM4.forEach((a,i)=>{
-    const d=HOY_ALM[i];
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td style="color:var(--muted)">${i+1}</td><td>${a}</td>
-      <td><input type="number" id="ha35${i}" min="0" value="${d[0]}" onchange="calcHoy()"></td>
-      <td><input type="number" id="ha17${i}" min="0" value="${d[1]}" onchange="calcHoy()"></td>
-      <td><input type="number" id="ha10${i}" min="0" value="${d[2]}" onchange="calcHoy()"></td>
-      <td class="auto" id="hasub${i}">0.00</td>`;
-    $('tb-halm').appendChild(tr);
-  });
-  calcHoy();
-})();
-
+// Planillas Hoy → buildHoyPar() / buildHoyAlm() via cambiarCorredor()
 function calcHoy(){
   let p35=0,p17=0,p10=0,pef=0,psub=0;
   PAR35.forEach((_,i)=>{
     const a=v(`hp35${i}`),b=v(`hp17${i}`),c=v(`hp10${i}`),e=v(`hef${i}`);
     const sub=a*0.35+b*0.17+c*0.10+e;
-    $(`hpsub${i}`).textContent='$'+N(sub);
+    const _hs=$(`hpsub${i}`);if(_hs)_hs.textContent='$'+N(sub);
     p35+=a;p17+=b;p10+=c;pef+=e;psub+=sub;
   });
   $('hp35-t').textContent=NI(p35);$('hp17-t').textContent=NI(p17);$('hp10-t').textContent=NI(p10);
@@ -811,7 +792,7 @@ function calcHoy(){
   ALM4.forEach((_,i)=>{
     const a=v(`ha35${i}`),b=v(`ha17${i}`),c=v(`ha10${i}`);
     const sub=a*0.35+b*0.17+c*0.10;
-    $(`hasub${i}`).textContent='$'+N(sub);
+    const _ha=$(`hasub${i}`);if(_ha)_ha.textContent='$'+N(sub);
     a35+=a;a17+=b;a10+=c;asub+=sub;
   });
   $('ha35-t').textContent=NI(a35);$('ha17-t').textContent=NI(a17);$('ha10-t').textContent=NI(a10);
@@ -834,37 +815,13 @@ function calcHoy(){
   calcDin();calcBol();
 }
 
-// ═══ BUILD PLANILLAS MAÑANA ═══
-(function(){
-  PAR35.forEach((p,i)=>{
-    const d=MAN_PAR[i];
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td style="color:var(--muted)">${i+1}</td><td>${p}</td>
-      <td><input type="number" id="mp35${i}" min="0" value="${d[0]}" onchange="calcMan()"></td>
-      <td><input type="number" id="mp17${i}" min="0" value="${d[1]}" onchange="calcMan()"></td>
-      <td><input type="number" id="mp10${i}" min="0" value="${d[2]}" onchange="calcMan()"></td>
-      <td class="auto" id="mpsub${i}">0.00</td>`;
-    $('tb-mpar').appendChild(tr);
-  });
-  ALM4.forEach((a,i)=>{
-    const d=MAN_ALM[i];
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td style="color:var(--muted)">${i+1}</td><td>${a}</td>
-      <td><input type="number" id="ma35${i}" min="0" value="${d[0]}" onchange="calcMan()"></td>
-      <td><input type="number" id="ma17${i}" min="0" value="${d[1]}" onchange="calcMan()"></td>
-      <td><input type="number" id="ma10${i}" min="0" value="${d[2]}" onchange="calcMan()"></td>
-      <td class="auto" id="masub${i}">0.00</td>`;
-    $('tb-malm').appendChild(tr);
-  });
-  calcMan();
-})();
-
+// Planillas Mañana → buildManPar() / buildManAlm() via cambiarCorredor()
 function calcMan(){
   let p35=0,p17=0,p10=0,psub=0;
   PAR35.forEach((_,i)=>{
     const a=v(`mp35${i}`),b=v(`mp17${i}`),c=v(`mp10${i}`);
     const sub=a*0.35+b*0.17+c*0.10;
-    $(`mpsub${i}`).textContent='$'+N(sub);
+    const _ms=$(`mpsub${i}`);if(_ms)_ms.textContent='$'+N(sub);
     p35+=a;p17+=b;p10+=c;psub+=sub;
   });
   $('mp35-t').textContent=NI(p35);$('mp17-t').textContent=NI(p17);$('mp10-t').textContent=NI(p10);
@@ -874,7 +831,7 @@ function calcMan(){
   ALM4.forEach((_,i)=>{
     const a=v(`ma35${i}`),b=v(`ma17${i}`),c=v(`ma10${i}`);
     const sub=a*0.35+b*0.17+c*0.10;
-    $(`masub${i}`).textContent='$'+N(sub);
+    const _ma=$(`masub${i}`);if(_ma)_ma.textContent='$'+N(sub);
     a35+=a;a17+=b;a10+=c;asub+=sub;
   });
   $('ma35-t').textContent=NI(a35);$('ma17-t').textContent=NI(a17);$('ma10-t').textContent=NI(a10);
@@ -1083,7 +1040,11 @@ function buildTrole(){
   });
   dinRows+=`<tr class="total-row"><td colspan="2">TOTAL</td><td class="r">${N(totE,2)}</td><td class="r">-</td><td class="r">${N(totF,2)}</td><td class="r">${N(totT,2)}</td></tr>`;
 
-  // Boletos: alimentadoras solo si el corredor las tiene
+  // Boletos por corredor:
+  // TROLE → ALM+PAR + FICHAS 0,12
+  // CSO   → ALM+PAR + FICHAS 0,17
+  // CSW   → PAR + FICHAS 0,17 + B.AEROPUERTO 0,25
+  const _fichas=(_COR_KEY==='TROLEBUS')?'FICHAS 0,12':'FICHAS 0,17';
   const bolData=[
     ...(COR.tieneAlm?[
       ['B. ALIMENTADOR 0,35', fisAlm35+alm35, alm35, fisAlm35],
@@ -1093,7 +1054,8 @@ function buildTrole(){
     ['B.PARADA  $0,35', fisPar35+par35, par35, fisPar35],
     ['B.PARADA $0,17',  fisPar17+par17, par17, fisPar17],
     ['B.PARADA $0,10',  fisPar10+par10, par10, fisPar10],
-    ['FICHAS 0,12',     0,0,0],
+    [_fichas, 0,0,0],
+    ...(_COR_KEY==='SUR_OCCIDENTAL'?[['B.AEROPUERTO 0,25',0,0,0]]:[]),
   ];
   let bolRows='';
   bolData.forEach(([esp,kar,ent,fis])=>{
@@ -1256,25 +1218,89 @@ function cambiarCorredor(key){
   MAN_PAR=COR.manPar.map(r=>[...r]);
   MAN_ALM=COR.manAlm.map(r=>[...r]);
   BOL_STOCK_COR=[...COR.bolStock];
-  // Reconstruir todas las tablas
-  buildBoletos();
-  buildHoyPar(); buildHoyAlm(); buildManPar(); buildManAlm();
-  // Mostrar/ocultar sección alimentadoras
-  ['alm-hoy-sec','alm-man-sec'].forEach(id=>{const e=$(id);if(e)e.style.display=COR.tieneAlm?'':'none';});
-  // Actualizar etiquetas de sección con conteos dinámicos
-  const sp1=document.getElementById('sep-hoy-par');
-  if(sp1) sp1.textContent=PAR35.length+' Paradas (boletos + efectivo inicial)';
-  const sp2=document.getElementById('sep-hoy-alm');
-  if(sp2) sp2.textContent=ALM4.length+' Alimentadoras (solo boletos)';
-  const sp3=document.getElementById('sep-man-par');
-  if(sp3) sp3.textContent=PAR35.length+' Paradas';
-  const sp4=document.getElementById('sep-man-alm');
-  if(sp4) sp4.textContent=ALM4.length+' Alimentadoras';
-  calcDin();calcHoy();calcMan();calcBol();
-  try{localStorage.setItem('corredor_activo',key);}catch(e){}
-  setStatus&&setStatus('Corredor: '+COR.nombre);
-}
 
+  // ── Reconstruir tabla Planillas Hoy (Paradas) ──
+  (function(){
+    const tb=$('tb-hpar'); if(!tb) return; tb.innerHTML='';
+    PAR35.forEach((p,i)=>{
+      const d=HOY_PAR[i]||[0,0,0,COR.ef];
+      const tr=document.createElement('tr');
+      tr.innerHTML='<td style="color:var(--muted)">'+(i+1)+'</td><td>'+p+'</td>'
+        +'<td><input type="number" id="hp35'+i+'" min="0" value="'+d[0]+'" onchange="calcHoy()"></td>'
+        +'<td><input type="number" id="hp17'+i+'" min="0" value="'+d[1]+'" onchange="calcHoy()"></td>'
+        +'<td><input type="number" id="hp10'+i+'" min="0" value="'+d[2]+'" onchange="calcHoy()"></td>'
+        +'<td><input type="number" id="hef'+i+'" min="0" value="'+d[3]+'" step="0.01" onchange="calcHoy()" style="border-color:var(--accent)"></td>'
+        +'<td class="auto" id="hpsub'+i+'">0.00</td>';
+      tb.appendChild(tr);
+    });
+  })();
+
+  // ── Reconstruir tabla Planillas Hoy (Alimentadoras) ──
+  (function(){
+    const tb=$('tb-halm'); if(!tb) return; tb.innerHTML='';
+    ALM4.forEach((a,i)=>{
+      const d=HOY_ALM[i]||[0,0,0];
+      const tr=document.createElement('tr');
+      tr.innerHTML='<td style="color:var(--muted)">'+(i+1)+'</td><td>'+a+'</td>'
+        +'<td><input type="number" id="ha35'+i+'" min="0" value="'+d[0]+'" onchange="calcHoy()"></td>'
+        +'<td><input type="number" id="ha17'+i+'" min="0" value="'+d[1]+'" onchange="calcHoy()"></td>'
+        +'<td><input type="number" id="ha10'+i+'" min="0" value="'+d[2]+'" onchange="calcHoy()"></td>'
+        +'<td class="auto" id="hasub'+i+'">0.00</td>';
+      tb.appendChild(tr);
+    });
+  })();
+
+  // ── Reconstruir tabla Planillas Mañana (Paradas) ──
+  (function(){
+    const tb=$('tb-mpar'); if(!tb) return; tb.innerHTML='';
+    PAR35.forEach((p,i)=>{
+      const d=MAN_PAR[i]||[0,0,0];
+      const tr=document.createElement('tr');
+      tr.innerHTML='<td style="color:var(--muted)">'+(i+1)+'</td><td>'+p+'</td>'
+        +'<td><input type="number" id="mp35'+i+'" min="0" value="'+d[0]+'" onchange="calcMan()"></td>'
+        +'<td><input type="number" id="mp17'+i+'" min="0" value="'+d[1]+'" onchange="calcMan()"></td>'
+        +'<td><input type="number" id="mp10'+i+'" min="0" value="'+d[2]+'" onchange="calcMan()"></td>'
+        +'<td class="auto" id="mpsub'+i+'">0.00</td>';
+      tb.appendChild(tr);
+    });
+  })();
+
+  // ── Reconstruir tabla Planillas Mañana (Alimentadoras) ──
+  (function(){
+    const tb=$('tb-malm'); if(!tb) return; tb.innerHTML='';
+    ALM4.forEach((a,i)=>{
+      const d=MAN_ALM[i]||[0,0,0];
+      const tr=document.createElement('tr');
+      tr.innerHTML='<td style="color:var(--muted)">'+(i+1)+'</td><td>'+a+'</td>'
+        +'<td><input type="number" id="ma35'+i+'" min="0" value="'+d[0]+'" onchange="calcMan()"></td>'
+        +'<td><input type="number" id="ma17'+i+'" min="0" value="'+d[1]+'" onchange="calcMan()"></td>'
+        +'<td><input type="number" id="ma10'+i+'" min="0" value="'+d[2]+'" onchange="calcMan()"></td>'
+        +'<td class="auto" id="masub'+i+'">0.00</td>';
+      tb.appendChild(tr);
+    });
+  })();
+
+  // ── Reconstruir boletos (ocultar ALM en CSW) ──
+  buildBoletos();
+
+  // ── Mostrar/ocultar sección alimentadoras ──
+  ['alm-hoy-sec','alm-man-sec'].forEach(function(id){
+    var e=$(id); if(e) e.style.display=COR.tieneAlm?'':'none';
+  });
+
+  // ── Actualizar etiquetas ──
+  var sp1=$('sep-hoy-par'); if(sp1) sp1.textContent=PAR35.length+' Paradas (boletos + efectivo inicial)';
+  var sp2=$('sep-hoy-alm'); if(sp2) sp2.textContent=ALM4.length+' Alimentadoras (solo boletos)';
+  var sp3=$('sep-man-par'); if(sp3) sp3.textContent=PAR35.length+' Paradas';
+  var sp4=$('sep-man-alm'); if(sp4) sp4.textContent=ALM4.length+' Alimentadoras';
+
+  // ── Actualizar nombre corredor visible ──
+  var lbl=$('corredor-nombre'); if(lbl) lbl.textContent=COR.nombre;
+
+  calcDin(); calcHoy(); calcMan(); calcBol();
+  setTimeout(addMicBtns, 100);
+  try{localStorage.setItem('corredor_activo',key);}catch(e){}
+}
 
 function exportCSV(){
   const fecha=$('fecha').value, turno=$('turno').options[$('turno').value-1].text;
@@ -1419,48 +1445,32 @@ const VOZ={
     return;
   }
   VOZ.supported=true;
-  // Mantener stream vivo para no perder el permiso
-  navigator.mediaDevices.getUserMedia({audio:true})
-    .then(s=>VOZ._stream=s).catch(()=>{});
+  // SIN getUserMedia — conflicta con SpeechRecognition en Android
 
   const rec=new SR();
-  // es-ES = mejor soporte en Android Chrome que es-EC
-  rec.lang='es-ES';
-  // continuous=false en Android es MÁS estable — una sesión por número
+  // Idioma vacío = usa el idioma configurado en el dispositivo Android
+  // Esto es lo más compatible con todos los modelos Android
+  rec.lang='';
   rec.continuous=false;
   rec.interimResults=true;
-  rec.maxAlternatives=3;
+  rec.maxAlternatives=1;
   VOZ.rec=rec;
-
-  let _wdTimer=null;
-  function resetWatchdog(){
-    clearTimeout(_wdTimer);
-    // Sin watchdog agresivo — solo marcar como caído tras 15s de silencio total
-    _wdTimer=setTimeout(()=>{
-      if(VOZ.on){ setDot(false); setStatus('🎤 Toca HABLAR para continuar'); }
-    },15000);
-  }
 
   rec.onstart=()=>{
     VOZ._running=true;
     setDot(true);
-    setStatus('🔴 Escuchando — di el número');
-    resetWatchdog();
-    // Mostrar botón HABLAR activo
+    setStatus('🔴 Escuchando...');
     const hb=document.getElementById('voz-hablar');
     if(hb){hb.style.background='var(--red)';hb.textContent='🔴 Escuchando...';}
   };
 
   rec.onend=()=>{
-    clearTimeout(_wdTimer);
     VOZ._running=false;
     setDot(false);
-    // Restaurar botón HABLAR
     const hb=document.getElementById('voz-hablar');
     if(hb){hb.style.background='var(--accent)';hb.textContent='🎤 HABLAR';}
     if(VOZ.on && VOZ.seqMode){
-      // En modo secuencial: volver a escuchar automáticamente tras 300ms
-      setTimeout(()=>{ if(VOZ.on&&VOZ.seqMode) hablar(); },300);
+      setTimeout(()=>{ if(VOZ.on&&VOZ.seqMode) hablar(); },400);
     } else {
       setStatus('🎤 Toca HABLAR para dictar');
     }
@@ -1468,19 +1478,16 @@ const VOZ={
 
   rec.onerror=e=>{
     VOZ._running=false;
-    if(e.error==='no-speech'){
-      // Sin voz detectada — reintentar si estamos en modo secuencial
-      setStatus('Sin voz — toca HABLAR para intentar de nuevo');
-      return;
-    }
-    if(e.error==='aborted') return;
-    if(e.error==='not-allowed'){
-      setStatus('\u26a0\ufe0f Permiso denegado — activa el mic en Ajustes de Chrome');
-      VOZ.on=false; setDot(false); updHdr(); return;
-    }
-    if(e.error==='network'){
-      setStatus('\u26a0\ufe0f Sin internet — el dictado requiere conexión');
-    }
+    const hb=document.getElementById('voz-hablar');
+    if(hb){hb.style.background='var(--accent)';hb.textContent='🎤 HABLAR';}
+    // Mostrar el error exacto para diagnóstico
+    setStatus('Error: '+e.error+' — '+( 
+      e.error==='not-allowed'?'Activa el mic en Ajustes':
+      e.error==='network'?'Sin internet':
+      e.error==='no-speech'?'Sin voz detectada, intenta de nuevo':
+      e.error==='aborted'?'Cancelado':'Intenta de nuevo'
+    ));
+    if(e.error==='not-allowed'){VOZ.on=false;setDot(false);updHdr();}
   };
 
   rec.onresult=e=>{
@@ -1919,6 +1926,7 @@ function restoreData(){
     if(!raw)return;
     const d=JSON.parse(raw);
     Object.entries(d).forEach(([id,val])=>{
+      if(id==='corredor-sel') return; // corredor lo maneja cambiarCorredor
       const el=document.getElementById(id);
       if(el&&el.tagName!=='BUTTON')el.value=val;
     });
@@ -1943,17 +1951,27 @@ window.addEventListener('offline',updOnline);
 
 // Init al cargar
 document.addEventListener('DOMContentLoaded',()=>{
-  // Restaurar corredor guardado
+  // Adjuntar listener robusto al selector de corredor
+  const _selEl=document.getElementById('corredor-sel');
+  if(_selEl){
+    _selEl.addEventListener('change',function(){
+      cambiarCorredor(this.value);
+    });
+  }
+
+  // Determinar corredor inicial
+  let _initCor='TROLEBUS';
   try{
-    const savedCor=localStorage.getItem('corredor_activo');
-    if(savedCor&&CORRIDORS[savedCor]){
-      document.getElementById('corredor-sel').value=savedCor;
-      cambiarCorredor(savedCor);
-    }
+    const _s=localStorage.getItem('corredor_activo');
+    if(_s&&CORRIDORS[_s]) _initCor=_s;
   }catch(e){}
+
+  // SIEMPRE construir tablas del corredor correcto
+  if(_selEl) _selEl.value=_initCor;
+  cambiarCorredor(_initCor);
   showTab(0);
   updOnline();
-  restoreData();
+  setTimeout(restoreData, 250);
 });
 </script>
 </body>
